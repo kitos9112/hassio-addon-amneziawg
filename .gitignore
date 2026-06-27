@@ -1,0 +1,14 @@
+# Runtime state & secrets — never commit
+data/
+**/data/
+**/clients/
+*.key
+*.pem
+tests/tmp/
+
+# Local editor / OS
+*.swp
+.DS_Store
+
+# Local Claude settings (personal, not shared)
+.claude/settings.local.json
