@@ -154,4 +154,31 @@ assert_eq   "10.13.13.2"  "$(awk -F'\t' '$1=="phone"{print $2}'  "$RESOLVED_TSV"
 _ppub="$(awk -F'\t' '$1=="phone"{print $3}' "$RESOLVED_TSV")"; resolve_clients
 assert_eq   "$_ppub" "$(awk -F'\t' '$1=="phone"{print $3}' "$RESOLVED_TSV")" "client key idempotent"
 
+echo "== render.sh: server =="
+render_server_conf
+assert_file     "$SERVER_CONF" "server conf created"
+assert_mode     "$SERVER_CONF" 600 "server conf mode 600"
+assert_contains "$SERVER_CONF" "^\[Interface\]" "server [Interface]"
+assert_contains "$SERVER_CONF" "^ListenPort = 51820$" "server ListenPort"
+assert_contains "$SERVER_CONF" "^Address = 10.13.13.1/24$" "server address .1/24"
+assert_contains "$SERVER_CONF" "^PrivateKey = " "server private key line"
+assert_contains "$SERVER_CONF" "^Jc = " "server obfuscation Jc"
+assert_contains "$SERVER_CONF" "^H4 = " "server obfuscation H4"
+assert_eq       "2" "$(grep -c '^\[Peer\]' "$SERVER_CONF")" "server has 2 peers"
+assert_contains "$SERVER_CONF" "^AllowedIPs = 10.13.13.2/32$"  "phone peer /32"
+assert_contains "$SERVER_CONF" "^AllowedIPs = 10.13.13.50/32$" "laptop peer /32"
+
+echo "== render.sh: client =="
+render_client_conf phone > "${DATA_DIR}/phone.conf"
+assert_contains "${DATA_DIR}/phone.conf" "^Endpoint = vpn.example.org:51820$" "client endpoint"
+assert_contains "${DATA_DIR}/phone.conf" "^DNS = 1.1.1.1,1.0.0.1$" "client DNS"
+assert_contains "${DATA_DIR}/phone.conf" "^AllowedIPs = 0.0.0.0/0$" "client full-tunnel AllowedIPs"
+assert_contains "${DATA_DIR}/phone.conf" "^Address = 10.13.13.2/32$" "client address /32"
+assert_contains "${DATA_DIR}/phone.conf" "^Jc = " "client obfuscation"
+assert_contains "${DATA_DIR}/phone.conf" "^PersistentKeepalive = 25$" "client keepalive"
+assert_ok   "client has server pubkey"        grep -Fq "PublicKey = ${SERVER_PUBKEY}" "${DATA_DIR}/phone.conf"
+assert_fail "client lacks server private key"  grep -Fq "$(cat "$SERVER_PRIV")" "${DATA_DIR}/phone.conf"
+( OBFS_ENABLED=0; render_client_conf phone ) > "${DATA_DIR}/phone-plain.conf"
+assert_not_contains "${DATA_DIR}/phone-plain.conf" "^Jc = " "obfuscation-off client has no Jc"
+
 assert_summary
