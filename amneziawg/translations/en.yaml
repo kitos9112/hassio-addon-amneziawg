@@ -43,6 +43,12 @@ configuration:
     description: >-
       One-shot: rotate ALL client keys (and auto-generated obfuscation params)
       on next start. Set back to false afterwards or keys rotate every restart.
+  qr_in_log:
+    name: Show client QR in log
+    description: >-
+      Print a scannable QR for each client to the add-on log. Convenient, but
+      the QR encodes the full client config INCLUDING its private key — disable
+      if you forward/share add-on logs.
   obfuscation:
     name: Obfuscation (AmneziaWG)
     description: >-
