@@ -111,9 +111,19 @@ assert_eq   "254" "$(cidr_capacity 10.13.13.0/24)" "cidr_capacity /24"
 R="$(rand_int 1 10)"; assert_ok "rand_int 1..10 in range" test "$R" -ge 1 -a "$R" -le 10
 assert_eq   "7" "$(rand_int 7 7)" "rand_int degenerate range"
 
-# ---- validate.sh / keys.sh / render.sh assertions appended in later tasks ----
-__run_validate_tests 2>/dev/null || true
-__run_keys_tests     2>/dev/null || true
-__run_render_tests   2>/dev/null || true
+echo "== validate.sh =="
+# Run validate_all in a subshell with ad-hoc env overrides.
+_validate_with() ( eval "$@"; validate_all )
+assert_ok   "valid sample passes"      validate_all
+assert_fail "empty endpoint_host"      _validate_with 'ENDPOINT_HOST='
+assert_fail "bad vpn_subnet /33"       _validate_with 'VPN_SUBNET=10.0.0.0/33'
+assert_fail "ipv6 vpn_subnet rejected" _validate_with 'VPN_SUBNET=fd00::/64'
+assert_fail "bad allowed_ips"          _validate_with 'ALLOWED_IPS=0.0.0.0/99'
+_dup="${DATA_DIR}/dup.tsv"; printf 'phone\t\t\nphone\t\t\n'  >"$_dup"
+_oos="${DATA_DIR}/oos.tsv"; printf 'phone\t10.99.0.5\t\n'    >"$_oos"
+assert_fail "duplicate client names"   _validate_with "CLIENTS_TSV=$_dup"
+assert_fail "address outside subnet"   _validate_with "CLIENTS_TSV=$_oos"
+assert_fail "obfs s2 == s1+56"         _validate_with 'OBFS_S1=10 OBFS_S2=66'
+assert_fail "obfs header in 1..4"      _validate_with 'OBFS_H1=2 OBFS_H2=99 OBFS_H3=100 OBFS_H4=101'
 
 assert_summary
