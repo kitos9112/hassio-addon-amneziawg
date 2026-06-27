@@ -126,4 +126,32 @@ assert_fail "address outside subnet"   _validate_with "CLIENTS_TSV=$_oos"
 assert_fail "obfs s2 == s1+56"         _validate_with 'OBFS_S1=10 OBFS_S2=66'
 assert_fail "obfs header in 1..4"      _validate_with 'OBFS_H1=2 OBFS_H2=99 OBFS_H3=100 OBFS_H4=101'
 
+echo "== keys.sh: obfuscation =="
+ensure_obfuscation
+assert_file "$OBFS_ENV" "obfuscation.env created"
+assert_ok   "jc resolved"        test -n "${OBFS_JC:-}"
+assert_ok   "jmax > jmin"        test "${OBFS_JMAX}" -gt "${OBFS_JMIN}"
+assert_ok   "s1 != s2"           test "${OBFS_S1}" -ne "${OBFS_S2}"
+assert_ok   "s2 != s1+56"        test "${OBFS_S2}" -ne "$(( OBFS_S1 + 56 ))"
+assert_ok   "h1 > 4"             test "${OBFS_H1}" -gt 4
+assert_ok   "h1 != h2"           test "${OBFS_H1}" -ne "${OBFS_H2}"
+_obfs1="$(cat "$OBFS_ENV")"; ensure_obfuscation; _obfs2="$(cat "$OBFS_ENV")"
+assert_eq   "$_obfs1" "$_obfs2"  "obfuscation params idempotent"
+
+echo "== keys.sh: server + clients =="
+ensure_server_keys
+assert_file "$SERVER_PRIV" "server private key"
+assert_file "$SERVER_PUB"  "server public key"
+assert_mode "$SERVER_PRIV" 600   "server private key mode 600"
+_spub="$(cat "$SERVER_PUB")"; ensure_server_keys
+assert_eq   "$_spub" "$(cat "$SERVER_PUB")" "server key idempotent"
+
+resolve_clients
+assert_file "$RESOLVED_TSV" "resolved tsv"
+assert_eq   "2" "$(grep -c . "$RESOLVED_TSV")" "two resolved clients"
+assert_eq   "10.13.13.50" "$(awk -F'\t' '$1=="laptop"{print $2}' "$RESOLVED_TSV")" "laptop fixed addr"
+assert_eq   "10.13.13.2"  "$(awk -F'\t' '$1=="phone"{print $2}'  "$RESOLVED_TSV")" "phone auto addr .2"
+_ppub="$(awk -F'\t' '$1=="phone"{print $3}' "$RESOLVED_TSV")"; resolve_clients
+assert_eq   "$_ppub" "$(awk -F'\t' '$1=="phone"{print $3}' "$RESOLVED_TSV")" "client key idempotent"
+
 assert_summary
