@@ -1,0 +1,63 @@
+#include <tunables/global>
+
+# AppArmor profile for the AmneziaWG Server add-on.
+#
+# Intentionally broad on capabilities/network (these are already gated by the
+# add-on's declared `privileged: [NET_ADMIN]` and the host's cap set) while
+# confining the writable filesystem to /data, /config, /tmp and /run. This
+# gives meaningful confinement without the fragility of per-binary sub-profiles
+# for s6, bashio, awg-quick, amneziawg-go, ip and iptables.
+#
+# If the add-on ever fails to start with AppArmor "DENIED" lines in the log,
+# set `apparmor: false` in the add-on config as a temporary workaround and
+# report it.
+profile amneziawg flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Capabilities (restricted to the container cap set by Docker regardless).
+  capability,
+
+  # Networking: TUN, netlink (ip/awg), raw + UDP sockets, masquerade.
+  network,
+
+  file,
+  signal,
+  ptrace,
+  mount,
+  umount,
+  remount,
+
+  # S6-Overlay init + service supervision
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /sbin/** ix,
+  /usr/sbin/** ix,
+  /run/{s6,s6-rc*,service}/** ix,
+  /package/** ix,
+  /command/** ix,
+  /etc/s6-overlay/** rix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+
+  # Bashio + add-on libraries
+  /usr/lib/bashio/** ix,
+  /usr/lib/amneziawg/** r,
+
+  # Userspace WireGuard control + runtime state
+  /dev/net/tun rw,
+  /run/{,**} rwk,
+  /var/run/{,**} rwk,
+  /tmp/{,**} rwk,
+  /dev/tty rw,
+
+  # Persistent data (keys, configs) + client export share
+  /data/{,**} rw,
+  /config/{,**} rw,
+
+  # Forwarding toggle + interface/route introspection
+  @{PROC}/sys/net/ipv4/** rw,
+  @{PROC}/** r,
+  /sys/** r,
+}
