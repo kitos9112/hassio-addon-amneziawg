@@ -36,6 +36,7 @@ options:
   persistent_keepalive: 25
   enable_nat: true
   regenerate_clients: false
+  qr_in_log: true
   obfuscation:
     enabled: true
   clients:
@@ -51,6 +52,7 @@ schema:
   persistent_keepalive: int(0,65535)
   enable_nat: bool
   regenerate_clients: bool
+  qr_in_log: bool
   obfuscation:
     enabled: bool
     jc: int(0,128)?

@@ -1,0 +1,22 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+# Clean teardown: runs on stop AND whenever the run script exits (incl. crash).
+# Brings the interface down and removes exactly the firewall rules we added.
+
+LIB=/usr/lib/amneziawg
+# shellcheck source=/dev/null
+. "${LIB}/common.sh"
+# shellcheck source=/dev/null
+. "${LIB}/network.sh"
+
+bashio::log.info "Stopping AmneziaWG: bringing ${IFACE} down and removing NAT rules."
+
+if [ -f "${SERVER_CONF}" ]; then
+  awg-quick down "${SERVER_CONF}" 2>/dev/null || true
+else
+  awg-quick down "${IFACE}" 2>/dev/null || true
+fi
+
+nat_down || true
+
+bashio::log.info "AmneziaWG stopped cleanly."

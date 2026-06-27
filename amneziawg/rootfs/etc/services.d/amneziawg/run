@@ -1,0 +1,99 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+# AmneziaWG server bring-up. Reads add-on options, generates/persists keys,
+# renders configs, enables NAT, brings up the interface, exports client configs,
+# then supervises the interface (exits non-zero if it drops, so s6 restarts us).
+
+LIB=/usr/lib/amneziawg
+OPTIONS=/data/options.json
+
+# shellcheck source=/dev/null
+. "${LIB}/common.sh"
+# shellcheck source=/dev/null
+. "${LIB}/validate.sh"
+# shellcheck source=/dev/null
+. "${LIB}/keys.sh"
+# shellcheck source=/dev/null
+. "${LIB}/render.sh"
+# shellcheck source=/dev/null
+. "${LIB}/network.sh"
+# shellcheck source=/dev/null
+. "${LIB}/export.sh"
+
+umask 077
+
+# --- scalar options -----------------------------------------------------------
+SERVER_PORT="$(bashio::config 'server_port')";                 export SERVER_PORT
+ENDPOINT_HOST="$(bashio::config 'endpoint_host')";             export ENDPOINT_HOST
+VPN_SUBNET="$(bashio::config 'vpn_subnet')";                   export VPN_SUBNET
+ALLOWED_IPS="$(bashio::config 'allowed_ips')";                 export ALLOWED_IPS
+MTU="$(bashio::config 'mtu')";                                 export MTU
+PERSISTENT_KEEPALIVE="$(bashio::config 'persistent_keepalive')"; export PERSISTENT_KEEPALIVE
+
+# --- booleans -----------------------------------------------------------------
+if bashio::config.true 'enable_nat';          then ENABLE_NAT=1;          else ENABLE_NAT=0;          fi
+if bashio::config.true 'regenerate_clients';  then REGENERATE_CLIENTS=1;  else REGENERATE_CLIENTS=0;  fi
+if bashio::config.true 'obfuscation.enabled'; then OBFS_ENABLED=1;        else OBFS_ENABLED=0;        fi
+if bashio::config.true 'qr_in_log';           then QR_IN_LOG=1;           else QR_IN_LOG=0;           fi
+export ENABLE_NAT REGENERATE_CLIENTS OBFS_ENABLED QR_IN_LOG
+
+# --- list / optional options (via jq over options.json) -----------------------
+CLIENT_DNS="$(jq -r '.client_dns // [] | join(" ")' "${OPTIONS}")"; export CLIENT_DNS
+
+_optnum() { jq -r "${1} // \"\"" "${OPTIONS}"; }
+OBFS_JC="$(_optnum '.obfuscation.jc')";     export OBFS_JC
+OBFS_JMIN="$(_optnum '.obfuscation.jmin')"; export OBFS_JMIN
+OBFS_JMAX="$(_optnum '.obfuscation.jmax')"; export OBFS_JMAX
+OBFS_S1="$(_optnum '.obfuscation.s1')";     export OBFS_S1
+OBFS_S2="$(_optnum '.obfuscation.s2')";     export OBFS_S2
+OBFS_H1="$(_optnum '.obfuscation.h1')";     export OBFS_H1
+OBFS_H2="$(_optnum '.obfuscation.h2')";     export OBFS_H2
+OBFS_H3="$(_optnum '.obfuscation.h3')";     export OBFS_H3
+OBFS_H4="$(_optnum '.obfuscation.h4')";     export OBFS_H4
+
+# --- clients list -> TSV (name<TAB>address<TAB>allowed_ips) --------------------
+CLIENTS_TSV=/data/.clients.input.tsv; export CLIENTS_TSV
+jq -r '.clients[]? | [.name, (.address // ""), (.allowed_ips // "")] | @tsv' \
+  "${OPTIONS}" > "${CLIENTS_TSV}"
+
+# --- key tooling --------------------------------------------------------------
+if   command -v awg >/dev/null 2>&1; then KEYGEN="awg"
+elif command -v wg  >/dev/null 2>&1; then KEYGEN="wg"
+else bashio::exit.nok "Neither awg nor wg found in the image."; fi
+export KEYGEN
+
+# --- pipeline -----------------------------------------------------------------
+validate_all || bashio::exit.nok "Configuration invalid — see the errors above."
+
+ensure_obfuscation
+ensure_server_keys
+resolve_clients
+render_server_conf
+
+nat_up || bashio::exit.nok "Failed to configure NAT/forwarding."
+
+if ! awg-quick up "${SERVER_CONF}"; then
+  nat_down || true
+  bashio::exit.nok "awg-quick failed to bring up ${IFACE}."
+fi
+
+export_clients
+
+bashio::log.info "------------------------------------------------------------"
+bashio::log.info "AmneziaWG '${IFACE}' is UP."
+bashio::log.info "  Listen     : UDP ${SERVER_PORT}  (forward this on your router)"
+bashio::log.info "  Endpoint   : ${ENDPOINT_HOST}:${SERVER_PORT}"
+bashio::log.info "  VPN subnet : ${VPN_SUBNET}  (server $(cidr_host "${VPN_SUBNET}" 1))"
+bashio::log.info "  Obfuscation: $( [ "${OBFS_ENABLED}" = 1 ] && echo 'ON (Amnezia/awg clients required)' || echo 'off (plain WireGuard)')"
+bashio::log.info "  NAT        : $( [ "${ENABLE_NAT}" = 1 ] && echo 'on' || echo 'off')"
+bashio::log.info "  Clients    : $(grep -c . "${RESOLVED_TSV}") (configs in ${EXPORT_DIR})"
+bashio::log.info "------------------------------------------------------------"
+
+# --- supervise: exit (and let s6 restart) if the interface disappears ---------
+while awg show "${IFACE}" >/dev/null 2>&1; do
+  sleep "${WATCHDOG_INTERVAL:-15}" &
+  wait $!
+done
+
+bashio::log.warning "${IFACE} is gone; exiting for supervisor restart."
+exit 1
