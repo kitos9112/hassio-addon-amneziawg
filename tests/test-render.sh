@@ -93,6 +93,8 @@ export SKIP_TUN_CHECK=1   # no /dev/net/tun on the dev host
 [ -f "${LIB_DIR}/validate.sh" ] && . "${LIB_DIR}/validate.sh"
 [ -f "${LIB_DIR}/keys.sh" ]     && . "${LIB_DIR}/keys.sh"
 [ -f "${LIB_DIR}/render.sh" ]   && . "${LIB_DIR}/render.sh"
+[ -f "${LIB_DIR}/network.sh" ]  && . "${LIB_DIR}/network.sh"
+[ -f "${LIB_DIR}/export.sh" ]   && . "${LIB_DIR}/export.sh"
 
 echo "== common.sh helpers =="
 assert_ok   "is_valid_cidr accepts 10.13.13.0/24" is_valid_cidr "10.13.13.0/24"
@@ -180,5 +182,15 @@ assert_ok   "client has server pubkey"        grep -Fq "PublicKey = ${SERVER_PUB
 assert_fail "client lacks server private key"  grep -Fq "$(cat "$SERVER_PRIV")" "${DATA_DIR}/phone.conf"
 ( OBFS_ENABLED=0; render_client_conf phone ) > "${DATA_DIR}/phone-plain.conf"
 assert_not_contains "${DATA_DIR}/phone-plain.conf" "^Jc = " "obfuscation-off client has no Jc"
+
+echo "== export.sh =="
+QR_IN_LOG=0 export_clients >/dev/null 2>&1
+assert_file     "${EXPORT_DIR}/phone.conf" "exported phone.conf"
+assert_mode     "${EXPORT_DIR}/phone.conf" 600 "exported conf mode 600"
+assert_contains "${EXPORT_DIR}/phone.conf" "^Endpoint = vpn.example.org:51820$" "exported conf endpoint"
+assert_file     "${EXPORT_DIR}/laptop.conf" "exported laptop.conf"
+if command -v qrencode >/dev/null 2>&1; then
+  assert_file "${EXPORT_DIR}/phone.png" "exported phone.png QR"
+fi
 
 assert_summary

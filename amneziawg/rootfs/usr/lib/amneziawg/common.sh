@@ -9,12 +9,21 @@
 : "${IFACE:=awg0}"
 : "${CLIENTS_TSV:=${DATA_DIR}/.clients.input.tsv}"
 
+# These are consumed by the sibling libraries sourced alongside this one
+# (keys.sh, render.sh, network.sh, export.sh), not within common.sh itself.
+# shellcheck disable=SC2034
 RESOLVED_TSV="${DATA_DIR}/.clients.resolved.tsv"
+# shellcheck disable=SC2034
 SERVER_CONF="${DATA_DIR}/${IFACE}.conf"
+# shellcheck disable=SC2034
 SERVER_PRIV="${DATA_DIR}/server_private.key"
+# shellcheck disable=SC2034
 SERVER_PUB="${DATA_DIR}/server_public.key"
+# shellcheck disable=SC2034
 OBFS_ENV="${DATA_DIR}/obfuscation.env"
+# shellcheck disable=SC2034
 RUNTIME_STATE="${DATA_DIR}/.runtime"
+# shellcheck disable=SC2034
 CLIENT_KEY_DIR="${DATA_DIR}/clients"
 
 # --- Logging ------------------------------------------------------------------
