@@ -1,0 +1,16 @@
+{
+  "server_port": 51820,
+  "endpoint_host": "vpn.example.org",
+  "vpn_subnet": "10.13.13.0/24",
+  "client_dns": ["1.1.1.1", "1.0.0.1"],
+  "allowed_ips": "0.0.0.0/0",
+  "mtu": 1420,
+  "persistent_keepalive": 25,
+  "enable_nat": true,
+  "regenerate_clients": false,
+  "obfuscation": { "enabled": true },
+  "clients": [
+    { "name": "phone" },
+    { "name": "laptop", "address": "10.13.13.50" }
+  ]
+}
