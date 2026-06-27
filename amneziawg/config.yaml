@@ -1,0 +1,69 @@
+---
+name: AmneziaWG Server
+version: "1.0.0"
+slug: amneziawg
+description: >-
+  AmneziaWG (WireGuard-compatible, DPI-evading) VPN exit node — routes remote
+  client traffic to the internet through your Home Assistant host.
+url: https://github.com/marcos-soutullo/addon-amneziawg/tree/main/amneziawg
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+host_network: true
+privileged:
+  - NET_ADMIN
+devices:
+  - /dev/net/tun
+map:
+  - addon_config:rw
+ports:
+  "51820/udp": 51820
+ports_description:
+  "51820/udp": >-
+    AmneziaWG listen port. With host networking the effective port is
+    'server_port'; forward this UDP port on your router.
+options:
+  server_port: 51820
+  endpoint_host: ""
+  vpn_subnet: "10.13.13.0/24"
+  client_dns:
+    - "1.1.1.1"
+  allowed_ips: "0.0.0.0/0"
+  mtu: 1420
+  persistent_keepalive: 25
+  enable_nat: true
+  regenerate_clients: false
+  obfuscation:
+    enabled: true
+  clients:
+    - name: phone
+schema:
+  server_port: int(1,65535)
+  endpoint_host: str
+  vpn_subnet: str
+  client_dns:
+    - str
+  allowed_ips: str
+  mtu: int(1280,1500)
+  persistent_keepalive: int(0,65535)
+  enable_nat: bool
+  regenerate_clients: bool
+  obfuscation:
+    enabled: bool
+    jc: int(0,128)?
+    jmin: int(0,1280)?
+    jmax: int(0,1280)?
+    s1: int(0,1280)?
+    s2: int(0,1280)?
+    h1: int(5,2147483647)?
+    h2: int(5,2147483647)?
+    h3: int(5,2147483647)?
+    h4: int(5,2147483647)?
+  clients:
+    - name: match(^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$)
+      address: str?
+      allowed_ips: str?
+  log_level: list(trace|debug|info|notice|warning|error|fatal)?

@@ -1,0 +1,62 @@
+---
+configuration:
+  server_port:
+    name: Server UDP port
+    description: >-
+      UDP port AmneziaWG listens on. Default 51820. Ports below 1024 are
+      allowed. Must not collide with another service on the host (e.g. AdGuard
+      on 53). Forward this port on your router.
+  endpoint_host:
+    name: Endpoint host (required)
+    description: >-
+      Your public IP or DDNS hostname that clients connect to. Written into
+      every client config as Endpoint = host:port. Leave nothing here and the
+      add-on will refuse to start.
+  vpn_subnet:
+    name: VPN subnet (CIDR)
+    description: >-
+      Private subnet for the tunnel. The server takes the first usable address
+      (e.g. .1); clients are auto-assigned the rest.
+  client_dns:
+    name: Client DNS servers
+    description: DNS server(s) pushed to clients.
+  allowed_ips:
+    name: Client AllowedIPs
+    description: >-
+      Ranges clients route through the tunnel. 0.0.0.0/0 = full tunnel (all
+      IPv4 traffic exits via Home Assistant). Override per-client below.
+  mtu:
+    name: MTU
+    description: Interface MTU. Lower to 1280 if you see fragmentation issues.
+  persistent_keepalive:
+    name: Persistent keepalive (s)
+    description: >-
+      Seconds between keepalive packets. 25 keeps NAT mappings alive; set 0 to
+      disable.
+  enable_nat:
+    name: Enable NAT / masquerade
+    description: >-
+      Masquerade client traffic out the host's WAN interface so it reaches the
+      internet. Disable only if you handle routing elsewhere.
+  regenerate_clients:
+    name: Regenerate client keys
+    description: >-
+      One-shot: rotate ALL client keys (and auto-generated obfuscation params)
+      on next start. Set back to false afterwards or keys rotate every restart.
+  obfuscation:
+    name: Obfuscation (AmneziaWG)
+    description: >-
+      DPI-evasion settings. When enabled, clients MUST use the Amnezia app or
+      awg — stock WireGuard clients cannot connect. Disable for plain
+      WireGuard compatibility. Leave individual params empty to auto-generate.
+  clients:
+    name: Clients
+    description: >-
+      Declarative client list. Add a name to create a client; keys persist and
+      are not rotated on restart. Optional fixed address and per-client
+      AllowedIPs override.
+  log_level:
+    name: Log level
+    description: Controls add-on log verbosity.
+network:
+  "51820/udp": AmneziaWG listen port (forward on your router)
