@@ -27,7 +27,7 @@ nat_up() {
     return 0
   fi
 
-  local wan prev_forward
+  local wan prev_forward forward_ok
   wan="$(_detect_wan)"
   if [ -z "$wan" ]; then
     log_error "Could not detect a host WAN interface (no default route)."
@@ -35,7 +35,14 @@ nat_up() {
   fi
 
   prev_forward="$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 0)"
-  sysctl -w net.ipv4.ip_forward=1 >/dev/null
+  if sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1; then
+    forward_ok=1
+  elif [ "$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null)" = "1" ]; then
+    forward_ok=1
+  else
+    forward_ok=0
+    log_warn "Could not enable net.ipv4.ip_forward — client traffic will not route until forwarding is on (needs NET_ADMIN on the host)."
+  fi
 
   # Clear any stale rules first (e.g. unclean previous shutdown).
   _nat_remove "$wan" "$VPN_SUBNET"
@@ -56,7 +63,9 @@ nat_up() {
     echo "PREV_IP_FORWARD=${prev_forward}"
   } > "$RUNTIME_STATE"
 
-  log_info "NAT on: ${VPN_SUBNET} masqueraded via '${wan}'; IPv4 forwarding enabled."
+  log_info "NAT on: ${VPN_SUBNET} masqueraded via '${wan}'."
+  [ "$forward_ok" = "1" ] && log_info "IPv4 forwarding active."
+  return 0
 }
 
 nat_down() {
