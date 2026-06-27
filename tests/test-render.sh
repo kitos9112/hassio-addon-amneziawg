@@ -114,7 +114,9 @@ R="$(rand_int 1 10)"; assert_ok "rand_int 1..10 in range" test "$R" -ge 1 -a "$R
 assert_eq   "7" "$(rand_int 7 7)" "rand_int degenerate range"
 
 echo "== validate.sh =="
-# Run validate_all in a subshell with ad-hoc env overrides.
+# Run validate_all in a subshell with ad-hoc env overrides (eval is intentional:
+# the args are "VAR=value" assignment strings applied before validation).
+# shellcheck disable=SC2294
 _validate_with() ( eval "$@"; validate_all )
 assert_ok   "valid sample passes"      validate_all
 assert_fail "empty endpoint_host"      _validate_with 'ENDPOINT_HOST='
@@ -180,6 +182,7 @@ assert_contains "${DATA_DIR}/phone.conf" "^Jc = " "client obfuscation"
 assert_contains "${DATA_DIR}/phone.conf" "^PersistentKeepalive = 25$" "client keepalive"
 assert_ok   "client has server pubkey"        grep -Fq "PublicKey = ${SERVER_PUBKEY}" "${DATA_DIR}/phone.conf"
 assert_fail "client lacks server private key"  grep -Fq "$(cat "$SERVER_PRIV")" "${DATA_DIR}/phone.conf"
+# shellcheck disable=SC2030,SC2034  # OBFS_ENABLED is read by render_client_conf (sourced)
 ( OBFS_ENABLED=0; render_client_conf phone ) > "${DATA_DIR}/phone-plain.conf"
 assert_not_contains "${DATA_DIR}/phone-plain.conf" "^Jc = " "obfuscation-off client has no Jc"
 
