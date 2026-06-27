@@ -14,18 +14,26 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 IMG="awg-addon-smoke:test"
 BASE="${BUILD_FROM:-ghcr.io/hassio-addons/base:19.0.0}"
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "SKIP: docker not available — cannot run the container smoke test." >&2
+# Pick a container engine: explicit override, else docker, else podman.
+ENGINE="${CONTAINER_ENGINE:-}"
+if [ -z "${ENGINE}" ]; then
+  if   command -v docker >/dev/null 2>&1; then ENGINE="docker"
+  elif command -v podman >/dev/null 2>&1; then ENGINE="podman"
+  fi
+fi
+if [ -z "${ENGINE}" ]; then
+  echo "SKIP: no container engine (docker/podman) — cannot run the container smoke test." >&2
   exit 0
 fi
-if ! docker info >/dev/null 2>&1; then
-  echo "SKIP: docker daemon not running — cannot run the container smoke test." >&2
+if ! "${ENGINE}" info >/dev/null 2>&1; then
+  echo "SKIP: ${ENGINE} daemon/machine not running — cannot run the container smoke test." >&2
   exit 0
 fi
+echo "==> Using container engine: ${ENGINE}"
 
 echo "==> Building image (${IMG}) from ${BASE} … this clones + compiles amnezia* and may take a few minutes."
-if ! docker build --build-arg "BUILD_FROM=${BASE}" -t "${IMG}" "${REPO_ROOT}/amneziawg"; then
-  echo "FAIL: docker build failed." >&2
+if ! "${ENGINE}" build --build-arg "BUILD_FROM=${BASE}" -t "${IMG}" "${REPO_ROOT}/amneziawg"; then
+  echo "FAIL: image build failed." >&2
   exit 1
 fi
 
@@ -82,7 +90,7 @@ echo "SMOKE OK"
 SMOKE
 
 echo "==> Running container smoke test (privileged: NET_ADMIN + /dev/net/tun) …"
-if docker run --rm -i \
+if "${ENGINE}" run --rm -i \
       --cap-add=NET_ADMIN \
       --device=/dev/net/tun \
       --sysctl net.ipv4.ip_forward=0 \
