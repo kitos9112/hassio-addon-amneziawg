@@ -6,7 +6,7 @@ ARG BUILD_FROM=ghcr.io/hassio-addons/base:19.0.0
 # Uses a dedicated Go image so the add-on base image's Go version (if any)
 # can never break the compile. Produces static-ish binaries copied below.
 # ---------------------------------------------------------------------------
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine AS build
 
 ARG AWG_GO_REF=v0.2.19
 ARG AWG_TOOLS_REF=v1.0.20260618-2
