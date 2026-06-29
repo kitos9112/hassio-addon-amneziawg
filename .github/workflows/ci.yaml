@@ -1,0 +1,76 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add-on config linter
+        uses: frenck/action-addon-linter@v2
+        with:
+          path: "./amneziawg"
+
+      - name: Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: amneziawg/Dockerfile
+          failure-threshold: error
+
+      - name: YAML (yamllint)
+        uses: frenck/action-yamllint@v1
+
+      - name: Shell (shellcheck)
+        run: |
+          shellcheck -s bash -e SC1090,SC1091,SC2016 \
+            amneziawg/rootfs/usr/lib/amneziawg/*.sh \
+            amneziawg/rootfs/etc/services.d/amneziawg/run \
+            amneziawg/rootfs/etc/services.d/amneziawg/finish \
+            tests/*.sh
+
+  test:
+    name: Unit tests (validate / keys / render)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install WireGuard tools (real key generation)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wireguard-tools
+
+      - name: Run pure-logic test suite
+        run: bash tests/test-render.sh
+
+  smoke:
+    name: Container smoke (build + live interface)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure /dev/net/tun is available
+        run: |
+          sudo modprobe tun || true
+          if [ ! -c /dev/net/tun ]; then
+            sudo mkdir -p /dev/net
+            sudo mknod /dev/net/tun c 10 200
+            sudo chmod 600 /dev/net/tun
+          fi
+          ls -l /dev/net/tun
+
+      - name: Build image and run smoke test
+        run: bash tests/test-smoke.sh

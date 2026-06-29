@@ -1,0 +1,13 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    level: warning
+  truthy:
+    # Allow GitHub Actions "on:" keys without warnings.
+    check-keys: false
+
+ignore: |
+  docs/
