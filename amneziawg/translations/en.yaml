@@ -19,7 +19,11 @@ configuration:
       (e.g. .1); clients are auto-assigned the rest.
   client_dns:
     name: Client DNS servers
-    description: DNS server(s) pushed to clients.
+    description: >-
+      DNS server(s) pushed to clients. The default 1.1.1.1 works out of the box.
+      To use a local resolver (AdGuard/Pi-hole on your HASS host), set its IP
+      here AND allow your vpn_subnet in that resolver's client/allow-list -
+      otherwise names won't resolve even though the tunnel is up.
   allowed_ips:
     name: Client AllowedIPs
     description: >-
