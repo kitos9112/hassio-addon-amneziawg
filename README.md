@@ -1,6 +1,11 @@
 # AmneziaWG Server — Home Assistant Add-on Repository
 
-A private Home Assistant add-on that runs an **AmneziaWG** VPN **exit node** on your
+[![Add repository to your Home Assistant instance](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fkitos9112%2Fhassio-addon-amneziawg)
+
+[![CI](https://github.com/kitos9112/hassio-addon-amneziawg/actions/workflows/ci.yaml/badge.svg)](https://github.com/kitos9112/hassio-addon-amneziawg/actions/workflows/ci.yaml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+An open-source Home Assistant add-on that runs an **AmneziaWG** VPN **exit node** on your
 Home Assistant host. Remote clients connect from the internet and route their traffic
 (full tunnel) out through your home connection. AmneziaWG is a WireGuard fork that adds
 DPI-evasion obfuscation; with obfuscation disabled it is byte-for-byte plain WireGuard.
@@ -27,9 +32,13 @@ DPI-evasion obfuscation; with obfuscation disabled it is byte-for-byte plain Wir
 
 **Option A — add this repository (recommended)**
 
+Click the badge at the top to add the repository in one step, or manually:
+
 1. Settings → Add-ons → Add-on Store → ⋮ → **Repositories**.
-2. Paste this repo's URL and **Add**.
+2. Paste `https://github.com/kitos9112/hassio-addon-amneziawg` and **Add**.
 3. Install **AmneziaWG Server** from the store, configure, start.
+
+Installs pull prebuilt multi-arch images (amd64/aarch64) from GHCR — no on-device build.
 
 **Option B — local add-on**
 

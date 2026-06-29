@@ -172,8 +172,14 @@ add-on listens on. Combined with obfuscation, a well-known port is a solid evasi
 
 - **`endpoint_host`** — must resolve to your public IP from the internet. With DDNS, point
   it at the DDNS name so it survives IP changes.
-- **`client_dns`** — `1.1.1.1`/`8.8.8.8`, or a local resolver reachable through the tunnel
-  (e.g. the server tunnel IP if you run DNS on HASS).
+- **`client_dns`** — the default `1.1.1.1` (or `8.8.8.8`) works out of the box. **Using a
+  local resolver (AdGuard / Pi-hole on your HASS host or LAN) needs one extra step:** put the
+  resolver's IP here **and** allow your `vpn_subnet` in that resolver's client/allow-list.
+  For example, AdGuard Home → *Settings → DNS settings → Access settings → Allowed clients*:
+  add `10.13.13.0/24`; Pi-hole → set the interface listening mode to permit the VPN subnet.
+  The resolver's IP must also be inside `allowed_ips` (it is, for the default full tunnel).
+  **Symptom of a misconfigured local resolver:** the VPN connects and raw IPs work
+  (`ping 1.1.1.1`), but website *names* don't resolve — that's DNS, not NAT.
 - **`mtu`** — `1420` suits most links. If sites hang/half-load, lower to `1380` or `1280`
   (obfuscation/junk adds overhead). Set it the same on both ends (the client config inherits it).
 - **`allowed_ips`** — `0.0.0.0/0` = full tunnel (all IPv4 via HASS). For split tunnel, list
@@ -220,6 +226,11 @@ rotated (that would break every client); it persists in `/data/server_private.ke
   confirm `endpoint_host` resolves from the internet; confirm the client uses the **Amnezia
   app/`awg`** (not stock WireGuard) while obfuscation is on; check the client's obfuscation
   params match (they come from the exported config — re-export if you changed them).
+- **Connected, but websites don't load (names don't resolve):** this is **DNS, not NAT**.
+  Test a raw IP first — `ping 1.1.1.1` from the client. If the IP works but names don't, your
+  `client_dns` isn't answering. The default `1.1.1.1` works everywhere; a **local resolver
+  (AdGuard/Pi-hole)** only works if you allow the `vpn_subnet` in its client/allow-list (see
+  the DNS tuning note above).
 - **Starts then traffic doesn't route:** ensure `enable_nat: true`; check the log for the
   detected WAN interface and the `NAT on:` line.
 - **Port already in use:** pick a different `server_port` (host networking shares ports).
