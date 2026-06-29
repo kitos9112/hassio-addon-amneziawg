@@ -1,0 +1,111 @@
+---
+name: Release
+
+# Manual one-shot release: bump version -> regenerate CHANGELOG from Conventional
+# Commits -> commit -> tag -> GitHub Release -> build & publish the image.
+# The image build runs in this same run (not via deploy.yaml), because a release
+# created with the default GITHUB_TOKEN does not trigger other workflows.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          Version to release, e.g. 1.0.1 (leave blank to auto-bump from commits;
+          required for the very first release since no tag exists yet).
+        required: false
+        type: string
+      dry_run:
+        description: Compute version + changelog only; do not commit/tag/release.
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Tag & release
+    runs-on: ubuntu-latest
+    outputs:
+      num: ${{ steps.resolve.outputs.num }}
+    steps:
+      - name: Checkout (full history + tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff@2.13.1
+
+      - name: Resolve version
+        id: resolve
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.version }}" ]; then
+            raw="${{ inputs.version }}"
+          else
+            raw="$(git-cliff --config cliff.toml --bumped-version 2>/dev/null || true)"
+          fi
+          if [ -z "${raw}" ]; then
+            echo "::error::No tag yet; pass a 'version' input (e.g. 1.0.0) for the first release."
+            exit 1
+          fi
+          num="${raw#v}"
+          echo "num=${num}" >> "$GITHUB_OUTPUT"
+          echo "Releasing v${num}"
+
+      - name: Regenerate CHANGELOG (prepend new release)
+        run: |
+          git-cliff --config cliff.toml --unreleased \
+            --tag "v${{ steps.resolve.outputs.num }}" \
+            --prepend amneziawg/CHANGELOG.md
+
+      - name: Extract release notes
+        run: |
+          git-cliff --config cliff.toml --unreleased \
+            --tag "v${{ steps.resolve.outputs.num }}" \
+            --strip header > /tmp/release-notes.md
+          cat /tmp/release-notes.md
+
+      - name: Bump version in config.yaml
+        run: |
+          sed -i -E 's/^(version:).*/\1 "${{ steps.resolve.outputs.num }}"/' \
+            amneziawg/config.yaml
+          grep -E '^version:' amneziawg/config.yaml
+
+      - name: Stop here on dry run
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "Dry run — not committing. Proposed CHANGELOG diff:"
+          git --no-pager diff -- amneziawg/CHANGELOG.md amneziawg/config.yaml || true
+
+      - name: Commit, tag & push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add amneziawg/config.yaml amneziawg/CHANGELOG.md
+          git commit -m "chore(release): v${{ steps.resolve.outputs.num }}"
+          git tag "v${{ steps.resolve.outputs.num }}"
+          git push --follow-tags
+
+      - name: Create GitHub Release
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ steps.resolve.outputs.num }}
+          name: v${{ steps.resolve.outputs.num }}
+          body_path: /tmp/release-notes.md
+
+  build:
+    needs: release
+    if: ${{ !inputs.dry_run }}
+    uses: ./.github/workflows/build.yaml
+    with:
+      version: ${{ needs.release.outputs.num }}
+    secrets: inherit
