@@ -1,0 +1,4 @@
+---
+ignored:
+  # apk packages are intentionally not version-pinned (rolling HA base image).
+  - DL3018
