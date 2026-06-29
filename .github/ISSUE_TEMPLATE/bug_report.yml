@@ -1,0 +1,48 @@
+---
+name: Bug report
+description: Report a problem with the AmneziaWG Server add-on
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Thanks for taking the time to report a bug. **Do NOT paste private keys,
+        client `.conf` contents, or QR codes** — they are secrets.
+  - type: input
+    id: version
+    attributes:
+      label: Add-on version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Architecture
+      options:
+        - amd64
+        - aarch64
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected to happen vs what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Add-on log (redact secrets)
+      description: Settings -> Add-ons -> AmneziaWG Server -> Log. Remove any keys.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I redacted all private keys, client configs, and QR codes.
+          required: true
+        - label: I read the DOCS troubleshooting section.
+          required: true

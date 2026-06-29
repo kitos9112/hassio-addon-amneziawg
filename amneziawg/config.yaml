@@ -5,7 +5,9 @@ slug: amneziawg
 description: >-
   AmneziaWG (WireGuard-compatible, DPI-evading) VPN exit node — routes remote
   client traffic to the internet through your Home Assistant host.
-url: https://github.com/marcos-soutullo/addon-amneziawg/tree/main/amneziawg
+url: https://github.com/kitos9112/hassio-addon-amneziawg/tree/main/amneziawg
+image: "ghcr.io/kitos9112/amneziawg"
+stage: stable
 arch:
   - amd64
   - aarch64
