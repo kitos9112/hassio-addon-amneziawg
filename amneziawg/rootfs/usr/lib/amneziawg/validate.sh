@@ -157,5 +157,44 @@ validate_all() {
     fi
   fi
 
+  # --- key import / restore (fail fast; never log the key value) -------------
+  # regenerate_clients is mutually exclusive with key import/restore ------
+  if [ "${REGENERATE_CLIENTS:-0}" = "1" ]; then
+    if [ "${KEY_IMPORT_RESTORE:-0}" = "1" ] || [ -n "${IMPORT_SERVER_KEY:-}" ] \
+       || { [ -f "${CLIENT_IMPORT_TSV:-/nonexistent}" ] && [ -s "${CLIENT_IMPORT_TSV}" ]; }; then
+      log_error "regenerate_clients cannot be combined with key import or restore — regeneration would discard the imported keys. Disable one of them."
+      return 1
+    fi
+  fi
+  if [ -n "${IMPORT_SERVER_KEY:-}" ] && ! is_valid_wg_key "${IMPORT_SERVER_KEY}"; then
+    log_error "server_private_key is not a valid WireGuard key (44-char base64)."
+    return 1
+  fi
+  if [ -f "${CLIENT_IMPORT_TSV:-/nonexistent}" ]; then
+    local _itab iname ipriv ipsk
+    _itab="$(printf '\t')"
+    while IFS="$_itab" read -r iname ipriv ipsk || [ -n "$iname" ]; do
+      [ -z "$iname" ] && continue
+      if [ -n "$ipriv" ] && ! is_valid_wg_key "$ipriv"; then
+        log_error "client '${iname}' private_key is not a valid WireGuard key."
+        return 1
+      fi
+      if [ -n "$ipsk" ] && ! is_valid_wg_key "$ipsk"; then
+        log_error "client '${iname}' preshared_key is not a valid WireGuard key."
+        return 1
+      fi
+    done < "${CLIENT_IMPORT_TSV}"
+  fi
+  if [ "${KEY_IMPORT_RESTORE:-0}" = "1" ]; then
+    if [ ! -f "${BUNDLE_IN:-/nonexistent}" ]; then
+      log_error "key_import.restore is on but ${BUNDLE_IN} is missing — place the bundle there first."
+      return 1
+    fi
+    if [ "$(head -c 8 "${BUNDLE_IN}" 2>/dev/null)" = "Salted__" ] && [ -z "${KEY_IMPORT_PASSPHRASE:-}" ]; then
+      log_error "Restore bundle is encrypted but key_import.passphrase is empty."
+      return 1
+    fi
+  fi
+
   return 0
 }
