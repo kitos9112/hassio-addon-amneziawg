@@ -43,7 +43,8 @@ RUN apk add --no-cache \
         iproute2 \
         libqrencode-tools \
         openresolv \
-        jq
+        jq \
+        openssl
 
 # Userspace AmneziaWG binaries from the build stage.
 COPY --from=build /out/usr/bin/amneziawg-go /usr/bin/amneziawg-go

@@ -123,4 +123,19 @@ printf 'phone\t\t\n' > "$CLIENTS_TSV"
 resolve_clients
 assert_file "$CLIENT_KEY_DIR/phone/public.key" "client pub derived after import + resolve"
 
+echo "== export.sh: individual key files + plaintext bundle =="
+fresh_data
+printf 'phone\t\t\nlaptop\t10.13.13.50\t\n' > "$CLIENTS_TSV"
+ensure_obfuscation; ensure_server_keys; resolve_clients
+KEY_EXPORT_PASSPHRASE="" export_keys
+assert_file "$KEY_EXPORT_DIR/server/private.key" "exported server priv"
+assert_mode "$KEY_EXPORT_DIR/server/private.key" 600 "exported server priv mode 600"
+assert_file "$KEY_EXPORT_DIR/clients/phone/private.key" "exported phone priv"
+assert_file "$KEY_EXPORT_DIR/clients/phone/preshared.key" "exported phone psk"
+assert_file "$BUNDLE_OUT" "plaintext bundle written"
+assert_ok   "bundle is JSON keybundle" sh -c "jq -e '.format==\"amneziawg-keybundle\"' '$BUNDLE_OUT'"
+assert_eq   "2" "$(jq '.clients | length' "$BUNDLE_OUT")" "bundle has 2 clients"
+assert_ok   "bundle carries obfuscation jc" sh -c "test -n \"\$(jq -r '.obfuscation.jc' '$BUNDLE_OUT')\""
+assert_eq   "$(cat "$SERVER_PRIV")" "$(jq -r '.server.private_key' "$BUNDLE_OUT")" "bundle server priv matches"
+
 assert_summary
