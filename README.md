@@ -60,8 +60,7 @@ addon-amneziawg/
 │   ├── config.yaml  build.yaml  Dockerfile  apparmor.txt
 │   ├── README.md  DOCS.md  CHANGELOG.md  translations/en.yaml
 │   └── rootfs/              # s6 service + /usr/lib/amneziawg/*.sh
-├── tests/                   # test-render.sh (pure logic) + test-smoke.sh (container)
-└── docs/superpowers/        # design spec + implementation plan
+└── tests/                   # test-render.sh (pure logic) + test-smoke.sh (container)
 ```
 
 ## Development / tests

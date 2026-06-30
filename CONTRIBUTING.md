@@ -11,7 +11,6 @@ implementation. Key paths:
 - `amneziawg/Dockerfile` — multi-stage build of `amneziawg-go` + `amneziawg-tools`.
 - `amneziawg/rootfs/usr/lib/amneziawg/*.sh` — the logic (validate / keys / render / network / export).
 - `amneziawg/rootfs/etc/services.d/amneziawg/{run,finish}` — the s6 service.
-- `docs/superpowers/` — design spec + implementation plan.
 
 ## Tests
 
