@@ -44,8 +44,24 @@ shellcheck -s bash -e SC1090,SC1091,SC2016 \
   published image tag.
 - CI (lint + unit + container smoke) must pass.
 
+## Releasing
+
+Releases are automated by the **Release** workflow (Actions → Release → Run workflow):
+it bumps `version:` in `config.yaml`, regenerates `CHANGELOG.md` from Conventional
+Commits, tags `vX.Y.Z`, creates the GitHub Release, and builds + pushes the multi-arch
+image to GHCR.
+
+- **First release only:** pass an explicit `version` (e.g. `1.0.0`) — there is no prior
+  tag to auto-bump from. Later releases can leave it blank.
+- **One-time, after the first publish:** make the GHCR package **Public**, or every
+  user's install fails with an image-pull error. GitHub → your profile → **Packages** →
+  `amneziawg` → **Package settings** → **Change visibility → Public**, then verify with
+  `docker pull ghcr.io/kitos9112/amneziawg:<version>`.
+- `main` branch protection must allow `github-actions[bot]` to push the release
+  commit/tag (or switch the workflow to a PR-based bump).
+
 ## Security
 
 - **Never commit secrets** — private keys, client `.conf` files, or QR codes.
   `/data`, `**/clients/`, and `*.key` are git-ignored; keep it that way.
-- Report security issues privately to the maintainer rather than in a public issue.
+- Report security issues privately via a [GitHub Security Advisory](https://github.com/kitos9112/hassio-addon-amneziawg/security/advisories/new) (see [SECURITY.md](SECURITY.md)) — not a public issue.
