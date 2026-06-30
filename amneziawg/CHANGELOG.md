@@ -3,7 +3,7 @@
 All notable changes to the AmneziaWG Server add-on are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
-## 1.0.0 - 2026-06-27
+## 1.0.0 - 2026-06-29
 
 Initial release.
 

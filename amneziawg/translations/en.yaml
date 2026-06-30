@@ -50,9 +50,9 @@ configuration:
   qr_in_log:
     name: Show client QR in log
     description: >-
-      Print a scannable QR for each client to the add-on log. Convenient, but
-      the QR encodes the full client config INCLUDING its private key — disable
-      if you forward/share add-on logs.
+      Print a scannable QR for each client to the add-on log. OFF by default: the
+      QR encodes the full client config INCLUDING its private key. Enable only for
+      quick onboarding, never on a system whose logs you forward or share.
   obfuscation:
     name: Obfuscation (AmneziaWG)
     description: >-
