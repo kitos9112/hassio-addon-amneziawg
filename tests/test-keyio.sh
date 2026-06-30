@@ -193,4 +193,22 @@ else
   echo "  SKIP encrypted-bundle asserts (openssl -pbkdf2 unavailable here)"
 fi
 
+echo "== validate.sh: key import preconditions =="
+[ -f "${LIB_DIR}/validate.sh" ] && . "${LIB_DIR}/validate.sh"
+fresh_data
+# Minimum valid base config for validate_all to reach the key checks.
+SERVER_PORT=51820 ENDPOINT_HOST="vpn.example.org" MTU=1420 PERSISTENT_KEEPALIVE=25
+CLIENT_DNS="1.1.1.1"; export SERVER_PORT ENDPOINT_HOST MTU PERSISTENT_KEEPALIVE CLIENT_DNS
+: > "$CLIENTS_TSV"
+_validate_kio() ( eval "$1"; validate_all )
+assert_ok   "clean config passes"          _validate_kio ':'
+assert_fail "bad server_private_key"        _validate_kio 'IMPORT_SERVER_KEY=not-a-key'
+printf 'phone\tnot-a-key\t\n' > "$CLIENT_IMPORT_TSV"
+assert_fail "bad client private_key"        _validate_kio ':'
+: > "$CLIENT_IMPORT_TSV"
+assert_fail "restore on, file missing"      _validate_kio 'KEY_IMPORT_RESTORE=1'
+printf 'Salted__xxxxx' > "$BUNDLE_IN"
+assert_fail "encrypted restore, no pass"    _validate_kio 'KEY_IMPORT_RESTORE=1'
+assert_ok   "encrypted restore, with pass"  _validate_kio 'KEY_IMPORT_RESTORE=1 KEY_IMPORT_PASSPHRASE=x'
+
 assert_summary
