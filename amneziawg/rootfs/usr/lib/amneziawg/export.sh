@@ -94,7 +94,7 @@ write_bundle() {
 
   _om="$(umask)"; umask 077
   if [ -n "${KEY_EXPORT_PASSPHRASE:-}" ]; then
-    _encrypt_bundle "$tmp" "$BUNDLE_OUT" "$KEY_EXPORT_PASSPHRASE"
+    BUNDLE_PASS="$KEY_EXPORT_PASSPHRASE" _encrypt_bundle "$tmp" "$BUNDLE_OUT"
   else
     cp "$tmp" "$BUNDLE_OUT"
   fi
@@ -104,8 +104,9 @@ write_bundle() {
   log_info "Wrote key bundle ($(grep -c . "$RESOLVED_TSV") client(s)) -> ${BUNDLE_OUT}$([ -n "${KEY_EXPORT_PASSPHRASE:-}" ] && printf ' (encrypted)')"
 }
 
-# _encrypt_bundle IN OUT PASS — AES-256/PBKDF2; passphrase via env, never argv.
+# _encrypt_bundle IN OUT -> encrypt to OUT using BUNDLE_PASS from the environment
+# (caller sets it, keeping the passphrase off every process argv).
 _encrypt_bundle() {
-  BUNDLE_PASS="$3" openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt \
+  openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt \
     -pass env:BUNDLE_PASS -in "$1" -out "$2"
 }
