@@ -14,3 +14,6 @@ tests/tmp/
 
 # Local Claude settings (personal, not shared)
 .claude/settings.local.json
+
+# Local design docs / superpowers artifacts (kept locally, not published)
+docs/superpowers/
