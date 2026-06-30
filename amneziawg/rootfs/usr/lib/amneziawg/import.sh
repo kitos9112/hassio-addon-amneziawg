@@ -44,6 +44,10 @@ import_client_keys() {
   TAB="$(printf '\t')"
   while IFS="$TAB" read -r name priv psk || [ -n "$name" ]; do
     [ -z "$name" ] && continue
+    if ! is_valid_client_name "$name"; then
+      log_warn "Import: skipping client with an invalid name."
+      continue
+    fi
     cdir="${CLIENT_KEY_DIR}/${name}"
     if [ -n "$priv" ]; then
       if _seed_key "$cdir/private.key" "$priv" "client '${name}' private key"; then
@@ -126,6 +130,10 @@ restore_bundle() {
   i=0
   while [ "$i" -lt "$count" ]; do
     name="$(jq -r ".clients[$i].name" "$tmp")"
+    if ! is_valid_client_name "$name"; then
+      log_warn "Restore: skipping bundle client #$((i + 1)) — invalid client name."
+      i=$((i + 1)); continue
+    fi
     pk="$(jq  -r ".clients[$i].private_key // \"\"" "$tmp")"
     psk="$(jq -r ".clients[$i].preshared_key // \"\"" "$tmp")"
     if [ -n "$pk" ]; then

@@ -211,4 +211,22 @@ printf 'Salted__xxxxx' > "$BUNDLE_IN"
 assert_fail "encrypted restore, no pass"    _validate_kio 'KEY_IMPORT_RESTORE=1'
 assert_ok   "encrypted restore, with pass"  _validate_kio 'KEY_IMPORT_RESTORE=1 KEY_IMPORT_PASSPHRASE=x'
 
+echo "== validate.sh: regenerate_clients vs import are mutually exclusive =="
+fresh_data
+SERVER_PORT=51820 ENDPOINT_HOST="vpn.example.org" MTU=1420 PERSISTENT_KEEPALIVE=25 CLIENT_DNS="1.1.1.1"
+export SERVER_PORT ENDPOINT_HOST MTU PERSISTENT_KEEPALIVE CLIENT_DNS
+: > "$CLIENTS_TSV"; : > "$CLIENT_IMPORT_TSV"
+assert_fail "regenerate + server-key import rejected" _validate_kio "REGENERATE_CLIENTS=1 IMPORT_SERVER_KEY=$TEST_PRIV"
+assert_fail "regenerate + restore rejected"           _validate_kio 'REGENERATE_CLIENTS=1 KEY_IMPORT_RESTORE=1'
+assert_ok   "regenerate alone still valid"            _validate_kio 'REGENERATE_CLIENTS=1'
+
+echo "== restore_bundle: rejects traversal client name =="
+fresh_data
+jq -n --arg pk "$TEST_PRIV" --arg name "../evil" \
+  '{format:"amneziawg-keybundle",version:1,server:{private_key:$pk},obfuscation:{jc:"5"},clients:[{name:$name,private_key:$pk,preshared_key:$pk}]}' > "$BUNDLE_IN"
+KEY_IMPORT_RESTORE=1 KEY_IMPORT_OVERWRITE=0 restore_bundle
+assert_ok   "no key written outside CLIENT_KEY_DIR" test ! -e "$DATA_DIR/evil/private.key"
+assert_ok   "traversal client dir not created"      test ! -d "$DATA_DIR/evil"
+assert_file "$SERVER_PRIV" "server key still restored despite the bad client"
+
 assert_summary

@@ -43,8 +43,10 @@ export_keys() {
   mkdir -p "${KEY_EXPORT_DIR}/server" "${KEY_EXPORT_DIR}/clients"
   chmod 700 "$KEY_EXPORT_DIR" "${KEY_EXPORT_DIR}/server" "${KEY_EXPORT_DIR}/clients" 2>/dev/null || true
 
-  cp "$SERVER_PRIV" "${KEY_EXPORT_DIR}/server/private.key"
-  cp "$SERVER_PUB"  "${KEY_EXPORT_DIR}/server/public.key"
+  cp "$SERVER_PRIV" "${KEY_EXPORT_DIR}/server/private.key" \
+    || { log_error "Key export failed: could not copy server private key."; umask "$_om"; return 1; }
+  cp "$SERVER_PUB"  "${KEY_EXPORT_DIR}/server/public.key" \
+    || { log_error "Key export failed: could not copy server public key."; umask "$_om"; return 1; }
   chmod 600 "${KEY_EXPORT_DIR}/server/private.key" "${KEY_EXPORT_DIR}/server/public.key"
 
   local TAB name d
@@ -53,14 +55,17 @@ export_keys() {
     [ -z "$name" ] && continue
     d="${KEY_EXPORT_DIR}/clients/${name}"
     mkdir -p "$d"; chmod 700 "$d"
-    cp "${CLIENT_KEY_DIR}/${name}/private.key"   "$d/private.key"
-    cp "${CLIENT_KEY_DIR}/${name}/public.key"    "$d/public.key"
-    cp "${CLIENT_KEY_DIR}/${name}/preshared.key" "$d/preshared.key"
+    cp "${CLIENT_KEY_DIR}/${name}/private.key"   "$d/private.key" \
+      || { log_error "Key export failed: could not copy client '${name}' private key."; umask "$_om"; return 1; }
+    cp "${CLIENT_KEY_DIR}/${name}/public.key"    "$d/public.key" \
+      || { log_error "Key export failed: could not copy client '${name}' public key."; umask "$_om"; return 1; }
+    cp "${CLIENT_KEY_DIR}/${name}/preshared.key" "$d/preshared.key" \
+      || { log_error "Key export failed: could not copy client '${name}' preshared key."; umask "$_om"; return 1; }
     chmod 600 "$d"/*.key
   done < "$RESOLVED_TSV"
   umask "$_om"
 
-  write_bundle
+  write_bundle || return 1
   log_warn "key_export.enabled is ON — keys written under ${KEY_EXPORT_DIR} and a bundle to ${BUNDLE_OUT}. Set key_export.enabled back to false, then protect or delete these files."
 }
 
@@ -90,13 +95,19 @@ write_bundle() {
     '{format:"amneziawg-keybundle", version:1,
       server:{private_key:$spk},
       obfuscation:{jc:$jc,jmin:$jmin,jmax:$jmax,s1:$s1,s2:$s2,h1:$h1,h2:$h2,h3:$h3,h4:$h4},
-      clients:$clients}' > "$tmp"
+      clients:$clients}' > "$tmp" \
+    || { log_error "Key export failed: bundle assembly (jq) error."; rm -f "$tmp"; return 1; }
+  if ! jq -e '.format=="amneziawg-keybundle"' "$tmp" >/dev/null 2>&1; then
+    log_error "Key export failed: assembled bundle is malformed."; rm -f "$tmp"; return 1
+  fi
 
   _om="$(umask)"; umask 077
   if [ -n "${KEY_EXPORT_PASSPHRASE:-}" ]; then
-    BUNDLE_PASS="$KEY_EXPORT_PASSPHRASE" _encrypt_bundle "$tmp" "$BUNDLE_OUT"
+    BUNDLE_PASS="$KEY_EXPORT_PASSPHRASE" _encrypt_bundle "$tmp" "$BUNDLE_OUT" \
+      || { log_error "Key export failed: writing bundle."; rm -f "$tmp"; umask "$_om"; return 1; }
   else
-    cp "$tmp" "$BUNDLE_OUT"
+    cp "$tmp" "$BUNDLE_OUT" \
+      || { log_error "Key export failed: writing bundle."; rm -f "$tmp"; umask "$_om"; return 1; }
   fi
   chmod 600 "$BUNDLE_OUT"
   umask "$_om"

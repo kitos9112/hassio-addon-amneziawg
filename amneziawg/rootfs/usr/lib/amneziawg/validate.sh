@@ -158,6 +158,14 @@ validate_all() {
   fi
 
   # --- key import / restore (fail fast; never log the key value) -------------
+  # regenerate_clients is mutually exclusive with key import/restore ------
+  if [ "${REGENERATE_CLIENTS:-0}" = "1" ]; then
+    if [ "${KEY_IMPORT_RESTORE:-0}" = "1" ] || [ -n "${IMPORT_SERVER_KEY:-}" ] \
+       || { [ -f "${CLIENT_IMPORT_TSV:-/nonexistent}" ] && [ -s "${CLIENT_IMPORT_TSV}" ]; }; then
+      log_error "regenerate_clients cannot be combined with key import or restore — regeneration would discard the imported keys. Disable one of them."
+      return 1
+    fi
+  fi
   if [ -n "${IMPORT_SERVER_KEY:-}" ] && ! is_valid_wg_key "${IMPORT_SERVER_KEY}"; then
     log_error "server_private_key is not a valid WireGuard key (44-char base64)."
     return 1

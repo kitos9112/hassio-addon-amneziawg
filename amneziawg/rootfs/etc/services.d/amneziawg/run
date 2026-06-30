@@ -106,7 +106,7 @@ fi
 export_clients
 
 if [ "${KEY_EXPORT_ENABLED}" = "1" ]; then
-  export_keys
+  export_keys || bashio::log.warning "Key export reported errors — the exported files/bundle may be incomplete. Check the log above."
 fi
 
 bashio::log.info "------------------------------------------------------------"
