@@ -2,15 +2,16 @@
 
 # AppArmor profile for the AmneziaWG Server add-on.
 #
-# Intentionally broad on capabilities/network (these are already gated by the
-# add-on's declared `privileged: [NET_ADMIN]` and the host's cap set) while
-# confining the writable filesystem to /data, /config, /tmp and /run. This
-# gives meaningful confinement without the fragility of per-binary sub-profiles
-# for s6, bashio, awg-quick, amneziawg-go, ip and iptables.
+# Confines the writable filesystem to /data, /config, /tmp and /run and scopes
+# exec to the expected paths. Capabilities/networking are left broad on purpose:
+# they are already gated by the add-on's declared `privileged: [NET_ADMIN]` and
+# the container's Docker capability set, and narrowing them further (e.g. to
+# `capability net_admin,` or dropping `mount`) risks breaking s6-overlay init.
+# That tightening is a TODO pending validation on a real Home Assistant OS box.
 #
-# If the add-on ever fails to start with AppArmor "DENIED" lines in the log,
-# set `apparmor: false` in the add-on config as a temporary workaround and
-# report it.
+# If the add-on fails to start with AppArmor "DENIED" lines, please open an issue
+# with the denied line so the profile can be corrected. Disabling the profile
+# (`apparmor: false`) removes this confinement entirely and is a last resort.
 profile amneziawg flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
@@ -22,7 +23,6 @@ profile amneziawg flags=(attach_disconnected,mediate_deleted) {
 
   file,
   signal,
-  ptrace,
   mount,
   umount,
   remount,

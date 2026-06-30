@@ -60,11 +60,11 @@ On first start the add-on generates the server keypair and per-client keys, writ
 | `vpn_subnet` | `10.13.13.0/24` | Tunnel subnet (IPv4). Server takes `.1`; clients get the rest. |
 | `client_dns` | `["1.1.1.1"]` | DNS server(s) pushed to clients. |
 | `allowed_ips` | `0.0.0.0/0` | What clients route through the tunnel. `0.0.0.0/0` = full-tunnel exit. |
-| `mtu` | `1420` | Interface MTU. Lower (e.g. `1280`) if you see fragmentation. |
+| `mtu` | `1420` | Interface MTU (allowed `1280`–`1500`; `1280` is the minimum). Lower it if you see fragmentation. |
 | `persistent_keepalive` | `25` | Keepalive seconds (keeps NAT mappings alive). `0` disables. |
 | `enable_nat` | `true` | Masquerade client traffic out the host WAN. |
 | `regenerate_clients` | `false` | One-shot: rotate **all** client keys on next start. Reset to `false` after. |
-| `qr_in_log` | `true` | Print a scannable QR per client to the log (encodes the private key — see risks). |
+| `qr_in_log` | `false` | Print a scannable QR per client to the log. **Off by default** — the QR encodes the client private key (see risks). |
 | `obfuscation.enabled` | `true` | DPI-evasion. `false` ⇒ plain WireGuard. |
 | `obfuscation.jc/jmin/jmax/s1/s2/h1..h4` | _(auto)_ | Leave empty to auto-generate + persist. Set to pin exact values. |
 | `clients[].name` | `phone` | Client name (`a-z A-Z 0-9 -`, ≤32). |
@@ -172,7 +172,7 @@ add-on listens on. Combined with obfuscation, a well-known port is a solid evasi
 
 - **`endpoint_host`** — must resolve to your public IP from the internet. With DDNS, point
   it at the DDNS name so it survives IP changes.
-- **`client_dns`** — the default `1.1.1.1` (or `8.8.8.8`) works out of the box. **Using a
+- **`client_dns`** — the default `1.1.1.1` works out of the box (any public resolver such as `8.8.8.8` is fine too). **Using a
   local resolver (AdGuard / Pi-hole on your HASS host or LAN) needs one extra step:** put the
   resolver's IP here **and** allow your `vpn_subnet` in that resolver's client/allow-list.
   For example, AdGuard Home → *Settings → DNS settings → Access settings → Allowed clients*:
@@ -180,7 +180,7 @@ add-on listens on. Combined with obfuscation, a well-known port is a solid evasi
   The resolver's IP must also be inside `allowed_ips` (it is, for the default full tunnel).
   **Symptom of a misconfigured local resolver:** the VPN connects and raw IPs work
   (`ping 1.1.1.1`), but website *names* don't resolve — that's DNS, not NAT.
-- **`mtu`** — `1420` suits most links. If sites hang/half-load, lower to `1380` or `1280`
+- **`mtu`** — `1420` suits most links (allowed `1280`–`1500`). If sites hang/half-load, lower toward the `1280` minimum (e.g. `1380`)
   (obfuscation/junk adds overhead). Set it the same on both ends (the client config inherits it).
 - **`allowed_ips`** — `0.0.0.0/0` = full tunnel (all IPv4 via HASS). For split tunnel, list
   only the ranges you want routed (e.g. `10.13.13.0/24, 192.168.1.0/24`). Per-client override
@@ -234,7 +234,8 @@ rotated (that would break every client); it persists in `/data/server_private.ke
 - **Starts then traffic doesn't route:** ensure `enable_nat: true`; check the log for the
   detected WAN interface and the `NAT on:` line.
 - **Port already in use:** pick a different `server_port` (host networking shares ports).
-- **AppArmor `DENIED` in the log:** set `apparmor: false` in the add-on config as a
-  temporary workaround and report it.
+- **AppArmor `DENIED` in the log:** please open an issue with the denied line so the
+  shipped profile can be corrected. Disabling the profile (`apparmor: false`) removes
+  the add-on's confinement entirely and should be a last resort only.
 - **`/dev/net/tun missing`:** your environment doesn't expose TUN; the add-on cannot run a
   userspace VPN there.
