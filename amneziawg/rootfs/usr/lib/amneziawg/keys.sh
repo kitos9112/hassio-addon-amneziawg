@@ -108,6 +108,8 @@ ensure_server_keys() {
     log_info "Generating server keypair (persisted in /data)"
     _gen_privkey > "$SERVER_PRIV"
     chmod 600 "$SERVER_PRIV"
+  fi
+  if [ ! -f "$SERVER_PUB" ]; then
     _pubkey < "$SERVER_PRIV" > "$SERVER_PUB"
   fi
   umask "$_om"
@@ -147,7 +149,11 @@ resolve_clients() {
     if [ ! -f "$cdir/private.key" ]; then
       log_info "Generating keys for client '${name}'"
       _gen_privkey > "$cdir/private.key"; chmod 600 "$cdir/private.key"
+    fi
+    if [ ! -f "$cdir/public.key" ]; then
       _pubkey < "$cdir/private.key" > "$cdir/public.key"
+    fi
+    if [ ! -f "$cdir/preshared.key" ]; then
       _genpsk > "$cdir/preshared.key"; chmod 600 "$cdir/preshared.key"
     fi
     ip="$addr"

@@ -69,4 +69,21 @@ assert_fail "rejects too short"     is_valid_wg_key "abc="
 assert_fail "rejects no padding"    is_valid_wg_key "yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmkk"
 assert_fail "rejects empty"         is_valid_wg_key ""
 
+echo "== keys.sh: pre-seed support =="
+fresh_data
+printf '%s\n' "$TEST_PRIV" > "$SERVER_PRIV"; chmod 600 "$SERVER_PRIV"
+ensure_server_keys
+assert_file "$SERVER_PUB" "server pub derived from pre-seeded priv"
+assert_eq   "$TEST_PRIV" "$(cat "$SERVER_PRIV")" "pre-seeded server priv kept"
+
+fresh_data
+mkdir -p "$CLIENT_KEY_DIR/phone"
+printf '%s\n' "$TEST_PSK" > "$CLIENT_KEY_DIR/phone/preshared.key"
+chmod 600 "$CLIENT_KEY_DIR/phone/preshared.key"
+printf 'phone\t\t\n' > "$CLIENTS_TSV"
+resolve_clients
+assert_eq   "$TEST_PSK" "$(cat "$CLIENT_KEY_DIR/phone/preshared.key")" "pre-seeded client psk kept"
+assert_file "$CLIENT_KEY_DIR/phone/private.key" "client priv generated beside seeded psk"
+assert_file "$CLIENT_KEY_DIR/phone/public.key"  "client pub derived beside seeded psk"
+
 assert_summary
