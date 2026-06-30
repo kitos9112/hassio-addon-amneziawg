@@ -25,7 +25,7 @@ comments, and publishing others' private information without permission.
 ## Enforcement
 
 Instances of abusive or otherwise unacceptable behavior may be reported to the
-project maintainer (via the repository's contact channels). All complaints will
+project maintainer via a private [GitHub Security Advisory](https://github.com/kitos9112/hassio-addon-amneziawg/security/advisories/new) (see SECURITY.md). All complaints will
 be reviewed and investigated promptly and fairly.
 
 The full text is available at

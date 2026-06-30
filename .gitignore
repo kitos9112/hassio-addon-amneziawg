@@ -4,6 +4,8 @@ data/
 **/clients/
 *.key
 *.pem
+*.conf
+*-qr.png
 tests/tmp/
 
 # Local editor / OS
