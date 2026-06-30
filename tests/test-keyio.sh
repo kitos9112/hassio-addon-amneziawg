@@ -98,7 +98,8 @@ assert_eq "$TEST_PRIV" "$(cat "$SERVER_PRIV")" "fill-empty imports server priv"
 assert_file "$SERVER_PUB" "server pub derived after import"
 
 # fill-empty must NOT clobber an existing different key
-OTHER="$(printf '%s' 'b' | { command -v sha256sum >/dev/null 2>&1 && sha256sum || shasum -a 256; } | cut -c1-43)="
+# (TEST_PSK is a valid key that differs from TEST_PRIV)
+OTHER="$TEST_PSK"
 fresh_data
 printf '%s\n' "$OTHER" > "$SERVER_PRIV"; chmod 600 "$SERVER_PRIV"
 IMPORT_SERVER_KEY="$TEST_PRIV" KEY_IMPORT_OVERWRITE=0 import_server_key
