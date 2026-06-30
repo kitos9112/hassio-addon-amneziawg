@@ -86,4 +86,41 @@ assert_eq   "$TEST_PSK" "$(cat "$CLIENT_KEY_DIR/phone/preshared.key")" "pre-seed
 assert_file "$CLIENT_KEY_DIR/phone/private.key" "client priv generated beside seeded psk"
 assert_file "$CLIENT_KEY_DIR/phone/public.key"  "client pub derived beside seeded psk"
 
+echo "== import.sh: paste-in server key =="
+fresh_data
+IMPORT_SERVER_KEY="$TEST_PRIV" KEY_IMPORT_OVERWRITE=0 import_server_key
+ensure_server_keys
+assert_eq "$TEST_PRIV" "$(cat "$SERVER_PRIV")" "fill-empty imports server priv"
+assert_file "$SERVER_PUB" "server pub derived after import"
+
+# fill-empty must NOT clobber an existing different key
+OTHER="$(printf '%s' 'b' | { command -v sha256sum >/dev/null 2>&1 && sha256sum || shasum -a 256; } | cut -c1-43)="
+fresh_data
+printf '%s\n' "$OTHER" > "$SERVER_PRIV"; chmod 600 "$SERVER_PRIV"
+IMPORT_SERVER_KEY="$TEST_PRIV" KEY_IMPORT_OVERWRITE=0 import_server_key
+assert_eq "$OTHER" "$(cat "$SERVER_PRIV")" "overwrite=0 keeps existing server priv"
+
+# overwrite=1 replaces and forces pub re-derivation
+fresh_data
+printf '%s\n' "$OTHER" > "$SERVER_PRIV"; chmod 600 "$SERVER_PRIV"
+printf '%s\n' "stale" > "$SERVER_PUB"
+IMPORT_SERVER_KEY="$TEST_PRIV" KEY_IMPORT_OVERWRITE=1 import_server_key
+assert_eq "$TEST_PRIV" "$(cat "$SERVER_PRIV")" "overwrite=1 replaces server priv"
+assert_ok "overwrite drops stale pub" test ! -f "$SERVER_PUB"
+
+echo "== import.sh: invalid key rejected =="
+fresh_data
+IMPORT_SERVER_KEY="not-a-key" KEY_IMPORT_OVERWRITE=0 import_server_key
+assert_ok "invalid server key not written" test ! -f "$SERVER_PRIV"
+
+echo "== import.sh: paste-in client keys =="
+fresh_data
+printf 'phone\t%s\t%s\n' "$TEST_PRIV" "$TEST_PSK" > "$CLIENT_IMPORT_TSV"
+KEY_IMPORT_OVERWRITE=0 import_client_keys
+assert_eq "$TEST_PRIV" "$(cat "$CLIENT_KEY_DIR/phone/private.key")" "client priv imported"
+assert_eq "$TEST_PSK"  "$(cat "$CLIENT_KEY_DIR/phone/preshared.key")" "client psk imported"
+printf 'phone\t\t\n' > "$CLIENTS_TSV"
+resolve_clients
+assert_file "$CLIENT_KEY_DIR/phone/public.key" "client pub derived after import + resolve"
+
 assert_summary
