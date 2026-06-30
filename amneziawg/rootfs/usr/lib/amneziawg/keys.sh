@@ -135,7 +135,8 @@ resolve_clients() {
   done < "$CLIENTS_TSV"
 
   # Pass 2: ensure keys + assign addresses + emit resolved rows.
-  local next_idx=2 cdir ip pub caips
+  local next_idx=2 cap cdir ip pub caips
+  cap="$(cidr_capacity "$VPN_SUBNET")"
   while IFS="$TAB" read -r name addr aips || [ -n "$name" ]; do
     [ -z "$name" ] && continue
     cdir="${CLIENT_KEY_DIR}/${name}"
@@ -152,6 +153,10 @@ resolve_clients() {
     ip="$addr"
     if [ -z "$ip" ]; then
       while :; do
+        if [ "$next_idx" -gt "$cap" ]; then
+          log_error "No free address left in ${VPN_SUBNET} for client '${name}'."
+          umask "$_om"; return 1
+        fi
         ip="$(cidr_host "$VPN_SUBNET" "$next_idx")"
         next_idx=$(( next_idx + 1 ))
         case "$used" in *" $ip "*) ;; *) used="${used}${ip} "; break ;; esac

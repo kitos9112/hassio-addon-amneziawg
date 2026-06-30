@@ -132,6 +132,17 @@ cidr_contains() {
 
 # cidr_capacity SUBNET -> usable host count (excludes network + broadcast)
 cidr_capacity() {
-  local prefix="${1#*/}"
-  echo $(( (1 << (32 - prefix)) - 2 ))
+  local prefix="${1#*/}" cap
+  cap=$(( (1 << (32 - prefix)) - 2 ))
+  [ "$cap" -lt 0 ] && cap=0
+  echo "$cap"
+}
+
+# cidr_broadcast SUBNET -> the IPv4 broadcast address of the subnet
+cidr_broadcast() {
+  local subnet="$1" prefix mask net
+  prefix="${subnet#*/}"
+  mask="$(_cidr_mask "$prefix")"
+  net=$(( $(_ipv4_to_int "${subnet%/*}") & mask ))
+  _int_to_ipv4 $(( net | (0xFFFFFFFF ^ mask) ))
 }
