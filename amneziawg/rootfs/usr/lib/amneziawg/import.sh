@@ -112,12 +112,17 @@ restore_bundle() {
       chmod 600 "$OBFS_ENV"
       umask "$_om"
       log_info "Restore: seeded obfuscation parameters."
+    else
+      log_warn "Restore: bundle carries no obfuscation parameters; obfuscation.env not modified."
     fi
   fi
 
   # clients
   local count i name pk psk
-  count="$(jq '.clients | length' "$tmp")"
+  count="$(jq '.clients | length' "$tmp" 2>/dev/null)"
+  case "$count" in
+    ''|*[!0-9]*) rm -f "$tmp"; log_error "Restore failed: malformed clients array in bundle."; return 1 ;;
+  esac
   i=0
   while [ "$i" -lt "$count" ]; do
     name="$(jq -r ".clients[$i].name" "$tmp")"
