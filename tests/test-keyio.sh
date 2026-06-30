@@ -16,6 +16,10 @@ LIB_DIR="${REPO_ROOT}/amneziawg/rootfs/usr/lib/amneziawg"
 TEST_PRIV="yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk="
 TEST_PSK="FpCBjFhYxBxIb/cQfHYpkzwY9bnX5Zq0n3pVH8Qe1mE="
 
+# Run restore_bundle in a subshell with ad-hoc env assignments (eval is intentional).
+# shellcheck disable=SC2294
+_restore_with() ( eval "$1"; restore_bundle )
+
 # Global runtime contract.
 IFACE="awg0"; export IFACE
 OBFS_ENABLED=1; export OBFS_ENABLED
@@ -137,5 +141,56 @@ assert_ok   "bundle is JSON keybundle" sh -c "jq -e '.format==\"amneziawg-keybun
 assert_eq   "2" "$(jq '.clients | length' "$BUNDLE_OUT")" "bundle has 2 clients"
 assert_ok   "bundle carries obfuscation jc" sh -c "test -n \"\$(jq -r '.obfuscation.jc' '$BUNDLE_OUT')\""
 assert_eq   "$(cat "$SERVER_PRIV")" "$(jq -r '.server.private_key' "$BUNDLE_OUT")" "bundle server priv matches"
+
+echo "== restore_bundle: plaintext round-trip =="
+fresh_data
+printf 'phone\t\t\nlaptop\t10.13.13.50\t\n' > "$CLIENTS_TSV"
+ensure_obfuscation; ensure_server_keys; resolve_clients
+SRV1="$(cat "$SERVER_PRIV")"
+PH_PRIV1="$(cat "$CLIENT_KEY_DIR/phone/private.key")"
+PH_PSK1="$(cat "$CLIENT_KEY_DIR/phone/preshared.key")"
+JC1="$OBFS_JC"
+KEY_EXPORT_PASSPHRASE="" write_bundle
+SAVED="$SCRATCH/saved.awg"; cp "$BUNDLE_OUT" "$SAVED"
+
+fresh_data
+cp "$SAVED" "$BUNDLE_IN"
+printf 'phone\t\t\nlaptop\t10.13.13.50\t\n' > "$CLIENTS_TSV"
+KEY_IMPORT_RESTORE=1 KEY_IMPORT_OVERWRITE=0 restore_bundle
+ensure_obfuscation; ensure_server_keys; resolve_clients
+assert_eq "$SRV1"     "$(cat "$SERVER_PRIV")" "restored server priv matches"
+assert_eq "$PH_PRIV1" "$(cat "$CLIENT_KEY_DIR/phone/private.key")" "restored phone priv matches"
+assert_eq "$PH_PSK1"  "$(cat "$CLIENT_KEY_DIR/phone/preshared.key")" "restored phone psk matches"
+assert_eq "$JC1"      "$OBFS_JC" "restored obfuscation jc matches"
+
+echo "== restore_bundle: missing file is fatal =="
+fresh_data
+assert_fail "restore with no bundle fails" _restore_with 'KEY_IMPORT_RESTORE=1'
+
+# openssl -pbkdf2 capability probe (skip encrypted asserts where unsupported, e.g. old LibreSSL)
+if BUNDLE_PASS=x openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -salt -pass env:BUNDLE_PASS \
+     -in /dev/null -out /dev/null 2>/dev/null; then HAVE_SSL=1; else HAVE_SSL=0; fi
+
+if [ "$HAVE_SSL" = 1 ]; then
+  echo "== restore_bundle: encrypted round-trip =="
+  fresh_data
+  printf 'phone\t\t\n' > "$CLIENTS_TSV"
+  ensure_obfuscation; ensure_server_keys; resolve_clients
+  SRV2="$(cat "$SERVER_PRIV")"
+  KEY_EXPORT_PASSPHRASE="s3cret-pass" write_bundle
+  assert_eq "Salted__" "$(head -c 8 "$BUNDLE_OUT")" "encrypted bundle has openssl magic"
+  ENC="$SCRATCH/enc.awg"; cp "$BUNDLE_OUT" "$ENC"
+
+  fresh_data
+  cp "$ENC" "$BUNDLE_IN"
+  printf 'phone\t\t\n' > "$CLIENTS_TSV"
+  assert_fail "wrong passphrase fails"   _restore_with 'KEY_IMPORT_RESTORE=1 KEY_IMPORT_PASSPHRASE=wrong'
+  assert_fail "empty passphrase fails"   _restore_with 'KEY_IMPORT_RESTORE=1'
+  KEY_IMPORT_RESTORE=1 KEY_IMPORT_PASSPHRASE="s3cret-pass" restore_bundle
+  ensure_server_keys
+  assert_eq "$SRV2" "$(cat "$SERVER_PRIV")" "encrypted bundle round-trip server priv"
+else
+  echo "  SKIP encrypted-bundle asserts (openssl -pbkdf2 unavailable here)"
+fi
 
 assert_summary

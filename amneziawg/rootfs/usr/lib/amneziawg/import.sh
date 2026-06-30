@@ -54,3 +54,84 @@ import_client_keys() {
   done < "$CLIENT_IMPORT_TSV"
   return 0
 }
+
+# _is_encrypted_bundle PATH -> 0 if the file starts with openssl's 'Salted__' magic.
+_is_encrypted_bundle() {
+  [ "$(head -c 8 "$1" 2>/dev/null)" = "Salted__" ]
+}
+
+# _decrypt_bundle IN OUT -> decrypt to OUT using BUNDLE_PASS from the environment
+# (caller sets it, keeping the passphrase off every process argv); non-zero on
+# wrong passphrase / corruption.
+_decrypt_bundle() {
+  openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
+    -pass env:BUNDLE_PASS -in "$1" -out "$2"
+}
+
+# restore_bundle — import keys from BUNDLE_IN into /data (fill-empty unless overwrite).
+# Auto-detects encryption; seeds server priv, obfuscation.env, and per-client priv/psk.
+restore_bundle() {
+  [ "${KEY_IMPORT_RESTORE:-0}" = "1" ] || return 0
+  [ -f "$BUNDLE_IN" ] || { log_error "key_import.restore is on but ${BUNDLE_IN} is missing."; return 1; }
+
+  local tmp; tmp="$(mktemp "${TMPDIR:-/tmp}/awg-restore.XXXXXX")"
+  if _is_encrypted_bundle "$BUNDLE_IN"; then
+    if [ -z "${KEY_IMPORT_PASSPHRASE:-}" ]; then
+      rm -f "$tmp"; log_error "Restore bundle is encrypted but key_import.passphrase is empty."; return 1
+    fi
+    if ! BUNDLE_PASS="$KEY_IMPORT_PASSPHRASE" _decrypt_bundle "$BUNDLE_IN" "$tmp" 2>/dev/null; then
+      rm -f "$tmp"; log_error "Restore failed: wrong passphrase or corrupt bundle."; return 1
+    fi
+  else
+    cp "$BUNDLE_IN" "$tmp"
+  fi
+
+  if ! jq -e '.format=="amneziawg-keybundle"' "$tmp" >/dev/null 2>&1; then
+    rm -f "$tmp"; log_error "Restore failed: not an AmneziaWG key bundle."; return 1
+  fi
+
+  mkdir -p "$DATA_DIR" "$CLIENT_KEY_DIR"
+
+  local spk; spk="$(jq -r '.server.private_key // ""' "$tmp")"
+  if [ -n "$spk" ]; then
+    _seed_key "$SERVER_PRIV" "$spk" "server private key (restore)" && rm -f "$SERVER_PUB"
+  fi
+
+  # obfuscation.env (fill-empty unless overwrite)
+  if [ ! -f "$OBFS_ENV" ] || [ "${KEY_IMPORT_OVERWRITE:-0}" = "1" ]; then
+    local jc k v _om
+    jc="$(jq -r '.obfuscation.jc // ""' "$tmp")"
+    if [ -n "$jc" ]; then
+      _om="$(umask)"; umask 077
+      {
+        for k in jc jmin jmax s1 s2 h1 h2 h3 h4; do
+          v="$(jq -r ".obfuscation.${k} // \"\"" "$tmp")"
+          [ -n "$v" ] && printf 'OBFS_%s=%s\n' "$(printf '%s' "$k" | tr '[:lower:]' '[:upper:]')" "$v"
+        done
+      } > "$OBFS_ENV"
+      chmod 600 "$OBFS_ENV"
+      umask "$_om"
+      log_info "Restore: seeded obfuscation parameters."
+    fi
+  fi
+
+  # clients
+  local count i name pk psk
+  count="$(jq '.clients | length' "$tmp")"
+  i=0
+  while [ "$i" -lt "$count" ]; do
+    name="$(jq -r ".clients[$i].name" "$tmp")"
+    pk="$(jq  -r ".clients[$i].private_key // \"\"" "$tmp")"
+    psk="$(jq -r ".clients[$i].preshared_key // \"\"" "$tmp")"
+    if [ -n "$pk" ]; then
+      _seed_key "${CLIENT_KEY_DIR}/${name}/private.key" "$pk" "client '${name}' private key (restore)" \
+        && rm -f "${CLIENT_KEY_DIR}/${name}/public.key"
+    fi
+    [ -n "$psk" ] && _seed_key "${CLIENT_KEY_DIR}/${name}/preshared.key" "$psk" "client '${name}' preshared key (restore)"
+    i=$((i + 1))
+  done
+
+  rm -f "$tmp"
+  log_warn "key_import.restore is ON — restored keys from ${BUNDLE_IN}. Set key_import.restore back to false."
+  return 0
+}
