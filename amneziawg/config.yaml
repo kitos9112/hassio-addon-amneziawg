@@ -7,6 +7,7 @@ description: >-
   client traffic to the internet through your Home Assistant host.
 url: https://github.com/kitos9112/hassio-addon-amneziawg/tree/main/amneziawg
 image: "ghcr.io/kitos9112/amneziawg"
+stage: stable
 arch:
   - amd64
   - aarch64
@@ -35,7 +36,7 @@ options:
   persistent_keepalive: 25
   enable_nat: true
   regenerate_clients: false
-  qr_in_log: true
+  qr_in_log: false
   obfuscation:
     enabled: true
   clients:

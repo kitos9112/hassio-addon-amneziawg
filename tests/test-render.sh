@@ -112,6 +112,10 @@ assert_fail "cidr_contains out-range" cidr_contains "10.13.13.0/24" "10.13.14.5"
 assert_eq   "254" "$(cidr_capacity 10.13.13.0/24)" "cidr_capacity /24"
 R="$(rand_int 1 10)"; assert_ok "rand_int 1..10 in range" test "$R" -ge 1 -a "$R" -le 10
 assert_eq   "7" "$(rand_int 7 7)" "rand_int degenerate range"
+assert_eq   "0" "$(cidr_capacity 10.13.13.0/31)" "cidr_capacity /31 -> 0"
+assert_eq   "0" "$(cidr_capacity 10.13.13.0/32)" "cidr_capacity /32 -> 0 (clamped)"
+assert_eq   "10.13.13.255" "$(cidr_broadcast 10.13.13.0/24)" "cidr_broadcast /24"
+assert_eq   "10.0.0.3" "$(cidr_broadcast 10.0.0.0/30)" "cidr_broadcast /30"
 
 echo "== validate.sh =="
 # Run validate_all in a subshell with ad-hoc env overrides (eval is intentional:
@@ -129,6 +133,15 @@ assert_fail "duplicate client names"   _validate_with "CLIENTS_TSV=$_dup"
 assert_fail "address outside subnet"   _validate_with "CLIENTS_TSV=$_oos"
 assert_fail "obfs s2 == s1+56"         _validate_with 'OBFS_S1=10 OBFS_S2=66'
 assert_fail "obfs header in 1..4"      _validate_with 'OBFS_H1=2 OBFS_H2=99 OBFS_H3=100 OBFS_H4=101'
+assert_fail "non-numeric obfs rejected" _validate_with 'OBFS_S1=abc'
+assert_fail "endpoint bad chars"       _validate_with 'ENDPOINT_HOST="a b"'
+assert_fail "vpn_subnet /31 rejected"  _validate_with 'VPN_SUBNET=10.13.13.0/31'
+assert_fail "vpn_subnet /32 rejected"  _validate_with 'VPN_SUBNET=10.13.13.0/32'
+assert_fail "bad client_dns rejected"  _validate_with 'CLIENT_DNS="zzz"'
+_net="${DATA_DIR}/net.tsv"; printf 'x\t10.13.13.0\t\n'   >"$_net"
+_bc="${DATA_DIR}/bc.tsv";   printf 'x\t10.13.13.255\t\n' >"$_bc"
+assert_fail "network addr rejected"    _validate_with "CLIENTS_TSV=$_net"
+assert_fail "broadcast addr rejected"  _validate_with "CLIENTS_TSV=$_bc"
 
 echo "== keys.sh: obfuscation =="
 ensure_obfuscation
@@ -195,5 +208,12 @@ assert_file     "${EXPORT_DIR}/laptop.conf" "exported laptop.conf"
 if command -v qrencode >/dev/null 2>&1; then
   assert_file "${EXPORT_DIR}/phone.png" "exported phone.png QR"
 fi
+
+echo "== keys.sh: exhaustion + render unknown =="
+assert_fail "render_client_conf unknown name" render_client_conf no-such-client
+# /30 has capacity 2 (server .1 + one client .2); 3 auto clients must fail loudly.
+_resolve_with() ( eval "$1"; resolve_clients )
+_exh="${DATA_DIR}/exh.tsv"; printf 'e1\t\t\ne2\t\t\ne3\t\t\n' >"$_exh"
+assert_fail "subnet exhaustion fails loudly" _resolve_with "VPN_SUBNET=10.0.0.0/30 CLIENTS_TSV=$_exh"
 
 assert_summary
