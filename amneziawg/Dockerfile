@@ -34,7 +34,10 @@ RUN git clone https://github.com/amnezia-vpn/amneziawg-tools.git \
 # ---------------------------------------------------------------------------
 FROM ${BUILD_FROM}
 
-# Runtime dependencies only (no toolchain).
+# Runtime dependencies only (no toolchain). `openssl` (used for the key-backup
+# bundle's `openssl enc`) needs a newer libcrypto3/libssl3 than the pinned base
+# image ships, so name the pair explicitly to let apk upgrade them together —
+# otherwise apk errors on the version skew ("breaks: openssl-<v>[libcrypto3=<v>]").
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
         bash \
@@ -44,6 +47,8 @@ RUN apk add --no-cache \
         libqrencode-tools \
         openresolv \
         jq \
+        libcrypto3 \
+        libssl3 \
         openssl
 
 # Userspace AmneziaWG binaries from the build stage.
