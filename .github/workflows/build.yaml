@@ -59,8 +59,6 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:${{ inputs.version }}
             ${{ env.IMAGE }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac  # v3
@@ -76,6 +74,7 @@ jobs:
           image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
           format: spdx-json
           output-file: sbom.spdx.json
+          upload-artifact: false
 
       - name: Attest SBOM (keyless)
         env:
