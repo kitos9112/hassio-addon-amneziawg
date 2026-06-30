@@ -29,6 +29,8 @@ _Unofficial community add-on — not affiliated with or endorsed by Home Assista
 - Enables **IPv4 forwarding + NAT/masquerade**, with clean teardown on stop.
 - Configurable UDP port (default `51820`, **`<1024` allowed**), subnet, DNS, MTU,
   AllowedIPs, keepalive, and AmneziaWG obfuscation parameters.
+- **Key backup/restore and bring-your-own keys** via the Configuration GUI (optionally
+  encrypted bundle).
 
 ## Install
 

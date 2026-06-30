@@ -16,6 +16,8 @@ internet and send their traffic out through your Home Assistant host's connectio
 - [Tuning: DNS, MTU, AllowedIPs, keepalive, endpoint](#tuning)
 - [Plain WireGuard mode](#plain-wireguard-mode)
 - [Regenerating keys](#regenerating-keys)
+- [Backing up & restoring keys](#backing-up--restoring-keys)
+- [Importing your own keys](#importing-your-own-keys)
 - [Risks and limitations](#risks-and-limitations)
 - [Troubleshooting](#troubleshooting)
 
@@ -65,6 +67,7 @@ On first start the add-on generates the server keypair and per-client keys, writ
 | `enable_nat` | `true` | Masquerade client traffic out the host WAN. |
 | `regenerate_clients` | `false` | One-shot: rotate **all** client keys on next start. Reset to `false` after. |
 | `qr_in_log` | `false` | Print a scannable QR per client to the log. **Off by default** — the QR encodes the client private key (see risks). |
+| `server_private_key`, `key_export.*`, `key_import.*`, `clients[].private_key/preshared_key` | _(off/blank)_ | Key backup/restore and bring-your-own keys. See [Backing up & restoring keys](#backing-up--restoring-keys). |
 | `obfuscation.enabled` | `true` | DPI-evasion. `false` ⇒ plain WireGuard. |
 | `obfuscation.jc/jmin/jmax/s1/s2/h1..h4` | _(auto)_ | Leave empty to auto-generate + persist. Set to pin exact values. |
 | `clients[].name` | `phone` | Client name (`a-z A-Z 0-9 -`, ≤32). |
@@ -201,6 +204,40 @@ Set `regenerate_clients: true` and restart to rotate **all** client keys (and an
 auto-generated obfuscation parameters). **Set it back to `false`** afterwards, or keys
 rotate on every restart. Re-distribute the new client configs. The server key is **not**
 rotated (that would break every client); it persists in `/data/server_private.key`.
+
+## Backing up & restoring keys
+
+**Back up** (export): set `key_export.enabled: true` and restart. The add-on writes
+the server + client keys to the add-on config share and a single portable bundle:
+
+```
+/addon_configs/<…>_amneziawg/keys/server/{private,public}.key
+/addon_configs/<…>_amneziawg/keys/clients/<name>/{private,public,preshared}.key
+/addon_configs/<…>_amneziawg/amneziawg-backup.awg
+```
+
+Set `key_export.passphrase` to AES-encrypt the bundle (recommended if it leaves the
+host). **Set `key_export.enabled` back to `false`** afterwards, and protect or delete
+the files — they contain private keys and are included in Home Assistant backups.
+
+**Restore / migrate** (import): copy the bundle to the share as
+`amneziawg-restore.awg`, set `key_import.restore: true` (and
+`key_import.passphrase` if it was encrypted), and restart. Keys are imported into
+empty slots only; existing keys are kept unless `key_import.overwrite: true`. Re-add
+the same `clients` entries (names, and any fixed addresses) so the restored keys are
+used. **Set `key_import.restore` back to `false`** afterwards.
+
+> The bundle carries key material + obfuscation parameters + client names. Client
+> addresses come from your `clients` config (which travels in HA backups).
+
+## Importing your own keys
+
+To adopt an externally generated key (e.g. from `awg genkey`), paste it into
+`server_private_key` (server) or a client's `private_key` / `preshared_key`. Imported
+keys apply only to empty slots unless `key_import.overwrite: true`. Public keys are
+always derived from the private key. **Replacing an in-use server key rotates the
+identity and breaks enrolled clients until they get new configs** — that is why
+`overwrite` is required for it.
 
 ## Risks and limitations
 

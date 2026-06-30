@@ -3,6 +3,24 @@
 All notable changes to the AmneziaWG Server add-on are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## 1.1.0 - 2026-06-30
+
+### Added
+
+- **Key export / import via the Configuration GUI.** Paste a server or per-client
+  private/preshared key to import it (used for empty slots unless
+  `key_import.overwrite` is set). One-shot `key_export.enabled` writes individual
+  key files plus a portable bundle (`amneziawg-backup.awg`) to the add-on config
+  share; one-shot `key_import.restore` imports keys from `amneziawg-restore.awg`.
+- **Optional bundle encryption** with a passphrase (AES-256, PBKDF2); encrypted
+  bundles are auto-detected on import.
+
+### Changed
+
+- Client and server key generation is now per-file idempotent, so importing a
+  subset of a key set (e.g. only a private key) preserves and completes the rest.
+- The runtime image now includes `openssl` (bundle encryption).
+
 ## 1.0.0 - 2026-06-29
 
 Initial release.
