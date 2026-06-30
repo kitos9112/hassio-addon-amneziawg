@@ -1,6 +1,6 @@
 ---
 name: AmneziaWG Server
-version: "1.0.0"
+version: "1.1.0"
 slug: amneziawg
 description: >-
   AmneziaWG (WireGuard-compatible, DPI-evading) VPN exit node — routes remote
@@ -36,6 +36,14 @@ options:
   enable_nat: true
   regenerate_clients: false
   qr_in_log: false
+  server_private_key: ""
+  key_export:
+    enabled: false
+    passphrase: ""
+  key_import:
+    restore: false
+    passphrase: ""
+    overwrite: false
   obfuscation:
     enabled: true
   clients:
@@ -52,6 +60,14 @@ schema:
   enable_nat: bool
   regenerate_clients: bool
   qr_in_log: bool
+  server_private_key: password?
+  key_export:
+    enabled: bool
+    passphrase: password?
+  key_import:
+    restore: bool
+    passphrase: password?
+    overwrite: bool
   obfuscation:
     enabled: bool
     jc: int(0,128)?
@@ -67,4 +83,6 @@ schema:
     - name: match(^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$)
       address: str?
       allowed_ips: str?
+      private_key: password?
+      preshared_key: password?
   log_level: list(trace|debug|info|notice|warning|error|fatal)?

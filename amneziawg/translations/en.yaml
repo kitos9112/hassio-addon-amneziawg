@@ -53,6 +53,28 @@ configuration:
       Print a scannable QR for each client to the add-on log. OFF by default: the
       QR encodes the full client config INCLUDING its private key. Enable only for
       quick onboarding, never on a system whose logs you forward or share.
+  server_private_key:
+    name: Import server private key
+    description: >-
+      Paste a base64 AmneziaWG/WireGuard private key to adopt it as the SERVER
+      identity. Used only when no server key is stored yet (or with key_import
+      overwrite). Leave blank to keep the existing key or auto-generate. Stored
+      in the add-on config and included in Home Assistant backups.
+  key_export:
+    name: Key export (one-shot)
+    description: >-
+      Enable to write the server + client keys and a portable backup bundle to
+      the add-on config share (keys/ and amneziawg-backup.awg) on next start,
+      then SET BACK to false. Set a passphrase to AES-encrypt the bundle. These
+      files contain PRIVATE keys — protect or delete them after retrieval.
+  key_import:
+    name: Key import / restore (one-shot)
+    description: >-
+      Enable restore to import keys from amneziawg-restore.awg (placed in the
+      add-on config share) on next start, then SET BACK to false. Provide the
+      passphrase if the bundle was encrypted. overwrite=true also replaces keys
+      that already exist — DANGER: this rotates the identity and breaks already
+      enrolled clients until they receive new configs.
   obfuscation:
     name: Obfuscation (AmneziaWG)
     description: >-
@@ -64,7 +86,9 @@ configuration:
     description: >-
       Declarative client list. Add a name to create a client; keys persist and
       are not rotated on restart. Optional fixed address and per-client
-      AllowedIPs override.
+      AllowedIPs override. Optionally paste a per-client private_key/preshared_key
+      to import existing keys (used only for empty slots unless key_import
+      overwrite is set).
   log_level:
     name: Log level
     description: Controls add-on log verbosity.
