@@ -19,6 +19,8 @@ OPTIONS=/data/options.json
 . "${LIB}/network.sh"
 # shellcheck source=/dev/null
 . "${LIB}/export.sh"
+# shellcheck source=/dev/null
+. "${LIB}/import.sh"
 
 umask 077
 
@@ -36,6 +38,20 @@ if bashio::config.true 'regenerate_clients';  then REGENERATE_CLIENTS=1;  else R
 if bashio::config.true 'obfuscation.enabled'; then OBFS_ENABLED=1;        else OBFS_ENABLED=0;        fi
 if bashio::config.true 'qr_in_log';           then QR_IN_LOG=1;           else QR_IN_LOG=0;           fi
 export ENABLE_NAT REGENERATE_CLIENTS OBFS_ENABLED QR_IN_LOG
+
+# --- key import / export options ----------------------------------------------
+if bashio::config.has_value 'server_private_key'; then
+  IMPORT_SERVER_KEY="$(bashio::config 'server_private_key')"; else IMPORT_SERVER_KEY=""; fi
+if bashio::config.has_value 'key_export.passphrase'; then
+  KEY_EXPORT_PASSPHRASE="$(bashio::config 'key_export.passphrase')"; else KEY_EXPORT_PASSPHRASE=""; fi
+if bashio::config.has_value 'key_import.passphrase'; then
+  KEY_IMPORT_PASSPHRASE="$(bashio::config 'key_import.passphrase')"; else KEY_IMPORT_PASSPHRASE=""; fi
+export IMPORT_SERVER_KEY KEY_EXPORT_PASSPHRASE KEY_IMPORT_PASSPHRASE
+
+if bashio::config.true 'key_export.enabled';   then KEY_EXPORT_ENABLED=1;   else KEY_EXPORT_ENABLED=0;   fi
+if bashio::config.true 'key_import.restore';   then KEY_IMPORT_RESTORE=1;   else KEY_IMPORT_RESTORE=0;   fi
+if bashio::config.true 'key_import.overwrite'; then KEY_IMPORT_OVERWRITE=1; else KEY_IMPORT_OVERWRITE=0; fi
+export KEY_EXPORT_ENABLED KEY_IMPORT_RESTORE KEY_IMPORT_OVERWRITE
 
 # --- list / optional options (via jq over options.json) -----------------------
 CLIENT_DNS="$(jq -r '.client_dns // [] | join(" ")' "${OPTIONS}")"; export CLIENT_DNS
@@ -56,6 +72,12 @@ CLIENTS_TSV=/data/.clients.input.tsv; export CLIENTS_TSV
 jq -r '.clients[]? | [.name, (.address // ""), (.allowed_ips // "")] | @tsv' \
   "${OPTIONS}" > "${CLIENTS_TSV}"
 
+# --- client key imports -> TSV (name<TAB>private_key<TAB>preshared_key) --------
+CLIENT_IMPORT_TSV=/data/.clients.import.tsv; export CLIENT_IMPORT_TSV
+jq -r '.clients[]? | select((.private_key // "") != "" or (.preshared_key // "") != "")
+        | [.name, (.private_key // ""), (.preshared_key // "")] | @tsv' \
+  "${OPTIONS}" > "${CLIENT_IMPORT_TSV}"
+
 # --- key tooling --------------------------------------------------------------
 if   command -v awg >/dev/null 2>&1; then KEYGEN="awg"
 elif command -v wg  >/dev/null 2>&1; then KEYGEN="wg"
@@ -65,8 +87,12 @@ export KEYGEN
 # --- pipeline -----------------------------------------------------------------
 validate_all || bashio::exit.nok "Configuration invalid — see the errors above."
 
+restore_bundle || bashio::exit.nok "Key restore failed — see the errors above."
+import_server_key
+
 ensure_obfuscation
 ensure_server_keys
+import_client_keys
 resolve_clients
 render_server_conf
 
@@ -78,6 +104,10 @@ if ! awg-quick up "${SERVER_CONF}"; then
 fi
 
 export_clients
+
+if [ "${KEY_EXPORT_ENABLED}" = "1" ]; then
+  export_keys
+fi
 
 bashio::log.info "------------------------------------------------------------"
 bashio::log.info "AmneziaWG '${IFACE}' is UP."
