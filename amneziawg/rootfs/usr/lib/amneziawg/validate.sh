@@ -11,6 +11,10 @@ validate_all() {
     log_error "endpoint_host is required (your public IP or DDNS hostname)."
     return 1
   fi
+  if ! printf '%s' "${ENDPOINT_HOST}" | grep -qE '^[A-Za-z0-9._:-]+$'; then
+    log_error "endpoint_host '${ENDPOINT_HOST}' has invalid characters (allowed: letters, digits, . _ : -)."
+    return 1
+  fi
 
   # --- vpn_subnet (IPv4 only — used for host arithmetic) --------------------
   if ! is_valid_cidr "${VPN_SUBNET:-}"; then
@@ -20,12 +24,26 @@ validate_all() {
   case "${VPN_SUBNET}" in
     *:*) log_error "vpn_subnet must be IPv4 (got '${VPN_SUBNET}')."; return 1 ;;
   esac
+  if [ "${VPN_SUBNET#*/}" -gt 30 ]; then
+    log_error "vpn_subnet '${VPN_SUBNET}' is too small; use /30 or larger (need a server plus at least one client)."
+    return 1
+  fi
 
   # --- allowed_ips (comma/space separated CIDR list) ------------------------
   for cidr in $(echo "${ALLOWED_IPS:-}" | tr ',' ' '); do
     [ -z "$cidr" ] && continue
     if ! is_valid_cidr "$cidr"; then
       log_error "allowed_ips entry '$cidr' is not a valid CIDR."
+      return 1
+    fi
+  done
+
+  # --- client_dns (each entry must be a valid IP) ---------------------------
+  local dns
+  for dns in ${CLIENT_DNS:-}; do
+    [ -z "$dns" ] && continue
+    if ! is_valid_ipv4 "$dns" && ! printf '%s' "$dns" | grep -qE '^[0-9a-fA-F:]+$'; then
+      log_error "client_dns entry '$dns' is not a valid IP address."
       return 1
     fi
   done
@@ -67,6 +85,10 @@ validate_all() {
           log_error "client '$name' address '$addr' collides with the server address."
           return 1
         fi
+        if [ "$addr" = "$(cidr_host "$VPN_SUBNET" 0)" ] || [ "$addr" = "$(cidr_broadcast "$VPN_SUBNET")" ]; then
+          log_error "client '$name' address '$addr' is the network or broadcast address."
+          return 1
+        fi
         case "$seen_addrs" in
           *" $addr "*) log_error "duplicate client address '$addr'."; return 1 ;;
         esac
@@ -90,6 +112,14 @@ validate_all() {
 
   # --- obfuscation constraints (only when values are explicitly provided) ----
   if [ "${OBFS_ENABLED:-1}" = "1" ]; then
+    local ov oval
+    for ov in OBFS_JC OBFS_JMIN OBFS_JMAX OBFS_S1 OBFS_S2 OBFS_H1 OBFS_H2 OBFS_H3 OBFS_H4; do
+      eval "oval=\${$ov:-}"
+      if [ -n "$oval" ] && ! printf '%s' "$oval" | grep -qE '^[0-9]+$'; then
+        log_error "obfuscation ${ov} ('${oval}') must be a non-negative integer."
+        return 1
+      fi
+    done
     if [ -n "${OBFS_JMIN:-}" ] && [ -n "${OBFS_JMAX:-}" ] \
        && [ "${OBFS_JMAX}" -le "${OBFS_JMIN}" ]; then
       log_error "obfuscation jmax (${OBFS_JMAX}) must be greater than jmin (${OBFS_JMIN})."

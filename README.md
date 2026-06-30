@@ -10,6 +10,8 @@ Home Assistant host. Remote clients connect from the internet and route their tr
 (full tunnel) out through your home connection. AmneziaWG is a WireGuard fork that adds
 DPI-evasion obfuscation; with obfuscation disabled it is byte-for-byte plain WireGuard.
 
+_Unofficial community add-on — not affiliated with or endorsed by Home Assistant, Nabu Casa, or the Amnezia project._
+
 > **Heads-up on transport:** AmneziaWG/WireGuard is **UDP**. **Cloudflare Tunnel cannot
 > carry it** (its public ingress is HTTP/HTTPS only; the only Cloudflare product that
 > proxies arbitrary UDP is Spectrum, which is Enterprise-only). You need a real public

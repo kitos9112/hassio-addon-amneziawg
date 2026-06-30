@@ -35,7 +35,7 @@ options:
   persistent_keepalive: 25
   enable_nat: true
   regenerate_clients: false
-  qr_in_log: true
+  qr_in_log: false
   obfuscation:
     enabled: true
   clients:

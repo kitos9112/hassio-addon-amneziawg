@@ -1,4 +1,7 @@
 ---
+# NOTE: not consumed by CI (which builds via `docker buildx` with --build-arg
+# BUILD_FROM) and ignored by Home Assistant when `image:` is set in config.yaml.
+# Kept for local `docker build` convenience and documentation only.
 build_from:
   aarch64: ghcr.io/hassio-addons/base:19.0.0
   amd64: ghcr.io/hassio-addons/base:19.0.0

@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write  # propagated to build.yaml for keyless cosign signing
 
 jobs:
   detect:
@@ -21,7 +22,7 @@ jobs:
       version: ${{ steps.v.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
       - name: Read version from config.yaml
         id: v
         run: |
