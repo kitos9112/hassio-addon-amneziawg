@@ -8,6 +8,15 @@
 : "${EXPORT_DIR:=/config/clients}"
 : "${IFACE:=awg0}"
 : "${CLIENTS_TSV:=${DATA_DIR}/.clients.input.tsv}"
+: "${CONFIG_SHARE:=/config}"
+# shellcheck disable=SC2034
+KEY_EXPORT_DIR="${CONFIG_SHARE}/keys"
+# shellcheck disable=SC2034
+BUNDLE_OUT="${CONFIG_SHARE}/amneziawg-backup.awg"
+# shellcheck disable=SC2034
+BUNDLE_IN="${CONFIG_SHARE}/amneziawg-restore.awg"
+# shellcheck disable=SC2034
+CLIENT_IMPORT_TSV="${DATA_DIR}/.clients.import.tsv"
 
 # These are consumed by the sibling libraries sourced alongside this one
 # (keys.sh, render.sh, network.sh, export.sh), not within common.sh itself.
@@ -59,6 +68,11 @@ key_fingerprint() {
   else
     printf '%s' "$1" | shasum -a 256 | cut -c1-11
   fi
+}
+
+# is_valid_wg_key KEY -> success if KEY is a 44-char base64 WireGuard key (32 bytes).
+is_valid_wg_key() {
+  printf '%s' "$1" | grep -qE '^[A-Za-z0-9+/]{43}=$'
 }
 
 # --- IPv4 / CIDR math (IPv4 only for arithmetic; IPv6 validated loosely) -------
