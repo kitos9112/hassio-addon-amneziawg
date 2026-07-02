@@ -70,7 +70,7 @@ On first start the add-on generates the server keypair and per-client keys, writ
 | `server_private_key`, `key_export.*`, `key_import.*`, `clients[].private_key/preshared_key` | _(off/blank)_ | Key backup/restore and bring-your-own keys. See [Backing up & restoring keys](#backing-up--restoring-keys). |
 | `obfuscation.enabled` | `true` | DPI-evasion. `false` ⇒ plain WireGuard. |
 | `obfuscation.jc/jmin/jmax/s1/s2/h1..h4` | _(auto)_ | Leave empty to auto-generate + persist. Set to pin exact values. |
-| `clients[].name` | `phone` | Client name (`a-z A-Z 0-9 -`, ≤32). |
+| `clients[].name` | `phone` | Client name (`a-z A-Z 0-9 _ -`, ≤32). |
 | `clients[].address` | _(auto)_ | Optional fixed tunnel IP inside `vpn_subnet`. |
 | `clients[].allowed_ips` | _(global)_ | Optional per-client override of routed ranges. |
 

@@ -80,7 +80,7 @@ schema:
     h3: int(5,2147483647)?
     h4: int(5,2147483647)?
   clients:
-    - name: match(^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$)
+    - name: match(^[a-zA-Z0-9][a-zA-Z0-9_-]{0,31}$)
       address: str?
       allowed_ips: str?
       private_key: password?

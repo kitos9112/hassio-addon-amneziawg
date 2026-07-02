@@ -68,8 +68,8 @@ validate_all() {
         *" $name "*) log_error "duplicate client name '$name'."; return 1 ;;
       esac
       seen_names="${seen_names}${name} "
-      if ! printf '%s' "$name" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$'; then
-        log_error "client name '$name' has invalid characters (allowed: a-z A-Z 0-9 -, max 32)."
+      if ! printf '%s' "$name" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,31}$'; then
+        log_error "client name '$name' has invalid characters (allowed: a-z A-Z 0-9 _ -, max 32)."
         return 1
       fi
       if [ -n "$addr" ]; then

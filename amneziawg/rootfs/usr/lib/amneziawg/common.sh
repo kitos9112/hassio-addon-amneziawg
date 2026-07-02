@@ -76,10 +76,10 @@ is_valid_wg_key() {
 }
 
 # is_valid_client_name NAME -> success if NAME matches the add-on client-name schema
-# (a-z A-Z 0-9 then up to 31 more of a-z A-Z 0-9 -). Guards FS paths built from
-# bundle-supplied names.
+# (a-z A-Z 0-9 then up to 31 more of a-z A-Z 0-9 _ -). Guards FS paths built from
+# bundle-supplied names (no dot or slash, so no path traversal).
 is_valid_client_name() {
-  printf '%s' "$1" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$'
+  printf '%s' "$1" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9_-]{0,31}$'
 }
 
 # --- IPv4 / CIDR math (IPv4 only for arithmetic; IPv6 validated loosely) -------
