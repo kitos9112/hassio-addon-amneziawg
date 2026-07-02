@@ -36,13 +36,27 @@ _Unofficial community add-on — not affiliated with or endorsed by Home Assista
 
 **Option A — add this repository (recommended)**
 
-Click the badge at the top to add the repository in one step, or manually:
+The badge at the top adds the repository in one click **only if** your browser is signed in
+to [My Home Assistant](https://my.home-assistant.io) and pointed at your instance (it asks
+for your instance URL the first time). If the badge does nothing, add it manually — this
+always works:
 
-1. Settings → Add-ons → Add-on Store → ⋮ → **Repositories**.
-2. Paste `https://github.com/kitos9112/hassio-addon-amneziawg` and **Add**.
-3. Install **AmneziaWG Server** from the store, configure, start.
+1. **Settings → Add-ons → Add-on Store**, then the **⋮** menu (top-right) → **Repositories**.
+2. Paste this URL, click **Add**, then close the dialog:
 
-Installs pull prebuilt multi-arch images (amd64/aarch64) from GHCR — no on-device build.
+   ```text
+   https://github.com/kitos9112/hassio-addon-amneziawg
+   ```
+
+3. Back in the store, find **AmneziaWG Server** (refresh if needed), open it, click
+   **Install**, then configure and start.
+
+Installs pull a prebuilt multi-arch image (amd64/aarch64) from GHCR — no on-device build.
+
+> **Install fails with `[401] unauthorized` / "Failed to get token from ghcr.io"?**
+> The image is published, but its GHCR package is **Private**. The repository owner must
+> set it to **Public** (one-time — see [CONTRIBUTING → Releasing](CONTRIBUTING.md#releasing)).
+> There is nothing to change on the Home Assistant side.
 
 **Option B — local add-on**
 
