@@ -21,7 +21,7 @@ export_clients() {
       qrencode -t png -o "${EXPORT_DIR}/${name}.png" < "$conf" 2>/dev/null \
         || log_warn "qrencode PNG generation failed for client '${name}'"
     fi
-    log_info "Client '${name}': ip=${ip} pubkey=$(key_fingerprint "$pub")… -> ${conf}"
+    log_info "Client '${name}': ip=${ip} pubkey=$(key_fingerprint "$pub")… -> clients/${name}.conf + clients/${name}.png (in the add-on config share)"
   done < "$RESOLVED_TSV"
   umask "$_om"
 
@@ -32,6 +32,7 @@ export_clients() {
       [ -z "$name" ] && continue
       log_info "QR for client '${name}' (scan with the Amnezia app / awg):"
       render_client_conf "$name" | qrencode -t ANSIUTF8 2>/dev/null || true
+      log_info "  (if this QR is distorted in the log viewer, open clients/${name}.png from the add-on config share and scan that instead)"
     done < "$RESOLVED_TSV"
   fi
 }
