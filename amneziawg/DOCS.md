@@ -276,3 +276,9 @@ identity and breaks enrolled clients until they get new configs** — that is wh
   the add-on's confinement entirely and should be a last resort only.
 - **`/dev/net/tun missing`:** your environment doesn't expose TUN; the add-on cannot run a
   userspace VPN there.
+- **Install/update fails with `[401] unauthorized` from `ghcr.io`** (`Failed to get token
+  from https://ghcr.io/token: 401`): the image is published but its GHCR package is
+  **Private**. This is a one-time setting on the maintainer's side — the package owner sets
+  the `amneziawg` GHCR package to **Public** (GitHub → **Packages** → `amneziawg` →
+  **Package settings** → **Change visibility → Public**). Nothing to change in Home Assistant;
+  retry the install once it's public.
