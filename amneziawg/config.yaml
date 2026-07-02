@@ -51,6 +51,7 @@ options:
 schema:
   server_port: int(1,65535)
   endpoint_host: str
+  endpoint_port: int(1,65535)?
   vpn_subnet: str
   client_dns:
     - str

@@ -55,6 +55,15 @@ validate_all() {
     return 1
   fi
 
+  # --- endpoint_port (optional external/advertised port) --------------------
+  if [ -n "${ENDPOINT_PORT:-}" ]; then
+    if ! [[ "${ENDPOINT_PORT}" =~ ^[0-9]+$ ]] \
+       || [ "${ENDPOINT_PORT}" -lt 1 ] || [ "${ENDPOINT_PORT}" -gt 65535 ]; then
+      log_error "endpoint_port '${ENDPOINT_PORT}' must be 1-65535."
+      return 1
+    fi
+  fi
+
   # --- clients --------------------------------------------------------------
   local capacity server_ip count=0 name addr aips
   local seen_names=" " seen_addrs=" "

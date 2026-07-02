@@ -63,7 +63,7 @@ render_client_conf() {
     echo "[Peer]"
     echo "PublicKey = ${SERVER_PUBKEY}"
     echo "PresharedKey = $(cat "$psk")"
-    echo "Endpoint = ${ENDPOINT_HOST}:${SERVER_PORT}"
+    echo "Endpoint = ${ENDPOINT_HOST}:${ENDPOINT_PORT:-$SERVER_PORT}"
     echo "AllowedIPs = ${aips}"
     if [ "${PERSISTENT_KEEPALIVE:-0}" -gt 0 ] 2>/dev/null; then
       echo "PersistentKeepalive = ${PERSISTENT_KEEPALIVE}"

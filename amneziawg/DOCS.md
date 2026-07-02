@@ -59,6 +59,7 @@ On first start the add-on generates the server keypair and per-client keys, writ
 |---|---|---|
 | `server_port` | `51820` | UDP listen port. `<1024` allowed. Must not clash with another host service. |
 | `endpoint_host` | _(required)_ | Your public IP or DDNS hostname. Written into client configs as `Endpoint`. |
+| `endpoint_port` | _(server_port)_ | External UDP port advertised to clients in `Endpoint`. Set only if your router forwards a different external port to `server_port` (e.g. `54` → `51820`). Doesn't change the listen port. |
 | `vpn_subnet` | `10.13.13.0/24` | Tunnel subnet (IPv4). Server takes `.1`; clients get the rest. |
 | `client_dns` | `["1.1.1.1"]` | DNS server(s) pushed to clients. |
 | `allowed_ips` | `0.0.0.0/0` | What clients route through the tunnel. `0.0.0.0/0` = full-tunnel exit. |
