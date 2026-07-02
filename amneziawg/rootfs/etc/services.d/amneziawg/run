@@ -27,6 +27,7 @@ umask 077
 # --- scalar options -----------------------------------------------------------
 SERVER_PORT="$(bashio::config 'server_port')";                 export SERVER_PORT
 ENDPOINT_HOST="$(bashio::config 'endpoint_host')";             export ENDPOINT_HOST
+if bashio::config.has_value 'endpoint_port'; then ENDPOINT_PORT="$(bashio::config 'endpoint_port')"; else ENDPOINT_PORT=""; fi; export ENDPOINT_PORT
 VPN_SUBNET="$(bashio::config 'vpn_subnet')";                   export VPN_SUBNET
 ALLOWED_IPS="$(bashio::config 'allowed_ips')";                 export ALLOWED_IPS
 MTU="$(bashio::config 'mtu')";                                 export MTU
@@ -112,7 +113,7 @@ fi
 bashio::log.info "------------------------------------------------------------"
 bashio::log.info "AmneziaWG '${IFACE}' is UP."
 bashio::log.info "  Listen     : UDP ${SERVER_PORT}  (forward this on your router)"
-bashio::log.info "  Endpoint   : ${ENDPOINT_HOST}:${SERVER_PORT}"
+bashio::log.info "  Endpoint   : ${ENDPOINT_HOST}:${ENDPOINT_PORT:-$SERVER_PORT}  (what clients dial)"
 bashio::log.info "  VPN subnet : ${VPN_SUBNET}  (server $(cidr_host "${VPN_SUBNET}" 1))"
 bashio::log.info "  Obfuscation: $( [ "${OBFS_ENABLED}" = 1 ] && echo 'ON (Amnezia/awg clients required)' || echo 'off (plain WireGuard)')"
 bashio::log.info "  NAT        : $( [ "${ENABLE_NAT}" = 1 ] && echo 'on' || echo 'off')"

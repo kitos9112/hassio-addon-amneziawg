@@ -12,6 +12,13 @@ configuration:
       Your public IP or DDNS hostname that clients connect to. Written into
       every client config as Endpoint = host:port. Leave nothing here and the
       add-on will refuse to start.
+  endpoint_port:
+    name: Endpoint port (external)
+    description: >-
+      External UDP port clients connect to, written into client configs as
+      Endpoint = host:port. Set this only when your router forwards a different
+      external port to the internal server_port (e.g. external 54 -> server_port
+      51820). Leave blank to use server_port. Does not change the listen port.
   vpn_subnet:
     name: VPN subnet (CIDR)
     description: >-

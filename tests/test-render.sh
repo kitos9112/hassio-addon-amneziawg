@@ -192,6 +192,11 @@ assert_contains "$SERVER_CONF" "^AllowedIPs = 10.13.13.50/32$" "laptop peer /32"
 echo "== render.sh: client =="
 render_client_conf phone > "${DATA_DIR}/phone.conf"
 assert_contains "${DATA_DIR}/phone.conf" "^Endpoint = vpn.example.org:51820$" "client endpoint"
+# endpoint_port overrides only the advertised Endpoint port (not ListenPort).
+# ENDPOINT_PORT is read by the sourced render_client_conf, invisible to shellcheck.
+# shellcheck disable=SC2030,SC2034
+( ENDPOINT_PORT=54; render_client_conf phone ) > "${DATA_DIR}/phone-ep.conf"
+assert_contains "${DATA_DIR}/phone-ep.conf" "^Endpoint = vpn.example.org:54$" "client endpoint honors endpoint_port override"
 assert_contains "${DATA_DIR}/phone.conf" "^DNS = 1.1.1.1,1.0.0.1$" "client DNS"
 assert_contains "${DATA_DIR}/phone.conf" "^AllowedIPs = 0.0.0.0/0$" "client full-tunnel AllowedIPs"
 assert_contains "${DATA_DIR}/phone.conf" "^Address = 10.13.13.2/32$" "client address /32"
