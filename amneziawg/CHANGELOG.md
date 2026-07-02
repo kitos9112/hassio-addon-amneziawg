@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.2.0] - 2026-07-02
+
+### Added
+- Add endpoint_port to advertise a different external port to clients (#14)
+
+### Fixed
+- Log the client PNG path so it's easy to find when the log QR won't scan (#15)
+
 ## [1.1.1] - 2026-07-02
 
 ### Documentation
