@@ -142,6 +142,10 @@ _net="${DATA_DIR}/net.tsv"; printf 'x\t10.13.13.0\t\n'   >"$_net"
 _bc="${DATA_DIR}/bc.tsv";   printf 'x\t10.13.13.255\t\n' >"$_bc"
 assert_fail "network addr rejected"    _validate_with "CLIENTS_TSV=$_net"
 assert_fail "broadcast addr rejected"  _validate_with "CLIENTS_TSV=$_bc"
+_us="${DATA_DIR}/us.tsv"; printf 'msr_23\t\t\n'   >"$_us"
+_sp="${DATA_DIR}/sp.tsv"; printf 'bad name\t\t\n' >"$_sp"
+assert_ok   "underscore in client name allowed" _validate_with "CLIENTS_TSV=$_us"
+assert_fail "space in client name rejected"      _validate_with "CLIENTS_TSV=$_sp"
 
 echo "== keys.sh: obfuscation =="
 ensure_obfuscation
