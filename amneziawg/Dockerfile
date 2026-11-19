@@ -6,7 +6,7 @@ ARG BUILD_FROM=ghcr.io/hassio-addons/base:19.0.0@sha256:c84ef9f8e223d433e789f987
 # Uses a dedicated Go image so the add-on base image's Go version (if any)
 # can never break the compile. Produces static-ish binaries copied below.
 # ---------------------------------------------------------------------------
-FROM golang:1.26-alpine@sha256:3889b425f035be855a72fb4755265311293b6d414521f0a519d819df32222d83 AS build
+FROM golang:1.27-alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc AS build
 
 # Pinned to commit SHAs (tags shown for humans; SHAs are immutable).
 ARG AWG_GO_REF=1cc94272ca8e9e223a5fe76382f5880f09d3c12d     # v0.2.19
